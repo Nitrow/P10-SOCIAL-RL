@@ -1,0 +1,93 @@
+#VRML_SIM R2021a utf8
+WorldInfo {
+  info [
+    "Unviversal Robot UR3e, UR5e and UR10e grasping cans using Robotiq 3F grippers."
+  ]
+  title "Universal Robot"
+  basicTimeStep 8
+  physicsDisableAngularThreshold 0.1
+  coordinateSystem "NUE"
+  contactProperties [
+    ContactProperties {
+      bounce 0.1
+    }
+    ContactProperties {
+      material1 "slope"
+      coulombFriction [
+        0.5
+      ]
+    }
+  ]
+}
+Viewpoint {
+  orientation 0.5492297757244073 0.7868191199833328 0.2815356565097408 5.116969766779024
+  position -6.070077695836111 7.118908119014663 6.001922422307935
+  exposure 1.7
+}
+TexturedBackground {
+  texture "factory"
+}
+Floor {
+  translation 1 0 1
+  size 9 5
+  appearance ThreadMetalPlate {
+  }
+}
+PlasticCrate {
+  translation -0.67 0 0
+}
+PlasticCrate {
+  translation 0.01 0 -0.67
+  name "plastic crate(2)"
+}
+PlasticCrate {
+  translation 0.72 0 0
+  name "plastic crate(1)"
+}
+Television {
+  translation 0 1.64 -0.72
+}
+SolidBox {
+  translation -0.016 0.305 0.0323
+  size 0.5 0.61 0.4
+  appearance GalvanizedMetal {
+  }
+}
+UR5e {
+  translation 0 0.61 0
+  rotation -0.5773502691896258 -0.5773502691896258 -0.5773502691896258 2.094395
+  controller "ure_can_grasper"
+  selfCollision FALSE
+  toolSlot [
+    Robotiq3fGripper {
+    }
+    DistanceSensor {
+      translation 0 0.1 0
+      rotation 0 0 1 1.570796
+    }
+  ]
+}
+ConveyorBelt {
+  translation 1 0 1.05
+  rotation 0 1 0 3.141592
+  size 4 0.6 0.7
+  appearance CorrugatedMetal {
+    textureTransform TextureTransform {
+      scale 6 3.1
+    }
+  }
+  borderHeight 0
+  speed 0.2
+}
+Can {
+  translation 0.7 0.66 0.83
+  name "can(13)"
+}
+Can {
+  translation 2.1 0.66 0.83
+  name "can(1)"
+}
+Pedestrian {
+  translation 0 1.27 1.85
+  rotation 0 1 0 3.14159
+}
