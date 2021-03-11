@@ -20,8 +20,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation 0.1691775382267153 0.9729920895787816 0.15705207472893998 4.739004115384339
-  position -3.1931169287942094 1.5844697451645198 0.7139054613153468
+  orientation 0.3703819404555961 -0.8941918964997079 -0.25147180839728966 4.997303308711608
+  position 3.6688684473417625 2.9161240469865843 1.3834831899124616
   exposure 1.7
 }
 TexturedBackground {
@@ -31,6 +31,16 @@ Floor {
   translation 1 0 1
   size 9 5
   appearance ThreadMetalPlate {
+  }
+}
+Table {
+  size 0.8 0.85 0.6
+  feetSize 0.05 0.05
+  frameThickness 0.017
+  trayAppearance GlossyPaint {
+    baseColor 0.643137 0 0
+  }
+  legAppearance RustyMetal {
   }
 }
 PlasticCrate {
@@ -43,34 +53,30 @@ PlasticCrate {
 PlasticCrate {
   translation 0.72 0 -0.18
   name "plastic crate(1)"
+  color 0.305882 0.603922 0.0235294
 }
 Television {
   translation 0 1.64 -0.72
 }
-SolidBox {
-  translation -0.016 0.305 -0.1077
-  size 0.5 0.61 0.4
-  appearance GalvanizedMetal {
-  }
-}
 ConveyorBelt {
-  translation 1 0 0.5
+  translation 1 0 0.58
   rotation 0 1 0 3.141592
-  size 4 0.6 0.7
+  size 4 0.8 0.165
   appearance CorrugatedMetal {
+    colorOverride 0.203922 0.396078 0.643137
     textureTransform TextureTransform {
-      scale 6 3.1
+      scale 6 3.6
     }
   }
   borderHeight 0
   speed 0.2
 }
 Can {
-  translation 0.7 0.66 0.44
+  translation 0.7 1.01 0.55
   name "can(13)"
 }
 Can {
-  translation 2.1 0.66 0.29
+  translation 2.1 1.04 0.55
   name "can(1)"
 }
 Pedestrian {
@@ -78,6 +84,7 @@ Pedestrian {
   rotation 0 1 0 3.14159
 }
 UR3e {
-  translation 0 0.64 -9.2062e-09
+  translation 2.8277e-08 0.85 0.199999
   rotation -0.5773502691896258 -0.5773502691896258 -0.5773502691896258 2.0944
+  controller "basic_controller"
 }
