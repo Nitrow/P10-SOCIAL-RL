@@ -20,8 +20,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation 0.20437566120038692 -0.9744368936559998 -0.0932916362325711 5.44304110898544
-  position 1.929641577531434 1.6492642976386485 1.7785074464975852
+  orientation 0.353279873596974 -0.917796027927338 -0.18122853536931496 5.2819558708394805
+  position 2.9686558741973728 2.5741031808953094 2.205478222786913
   exposure 1.7
 }
 TexturedBackground {
@@ -61,10 +61,10 @@ PlasticCrate {
   name "plastic crate(3)"
   color 0.929412 0.831373 0
 }
-Television {
+DEF TV Television {
   translation 0 1.64 -0.72
 }
-ConveyorBelt {
+DEF conveyor ConveyorBelt {
   translation 1 0 0.58
   rotation 0 1 0 3.141592
   size 4 0.8 0.165

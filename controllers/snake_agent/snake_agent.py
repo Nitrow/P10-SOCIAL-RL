@@ -126,6 +126,8 @@ shoulder_pan_motor = robot.getDevice('wrist_3_joint')
 shoulder_lift_motor.setPosition(6.2) # Max rotation speed is 6.28319
 shoulder_pan_motor.setPosition(6.2)
 
+#def play_step(action):
+    #return reward, game_over, score
 
 # Main loop:
 # - perform simulation steps until Webots is stopping the controller
