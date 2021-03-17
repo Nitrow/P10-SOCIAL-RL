@@ -20,8 +20,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation 0.353279873596974 -0.917796027927338 -0.18122853536931496 5.2819558708394805
-  position 2.9686558741973728 2.5741031808953094 2.205478222786913
+  orientation 0.20734688936430826 -0.9570972190574092 -0.2024158608990881 4.7087006227886965
+  position 1.777983153838519 1.8837363257069064 0.34472591512872386
   exposure 1.7
 }
 TexturedBackground {
@@ -57,12 +57,12 @@ PlasticCrate {
   color 0.305882 0.603922 0.0235294
 }
 PlasticCrate {
-  translation 0.72 0 1.12
+  translation 1.69 0 1.12
   name "plastic crate(3)"
   color 0.929412 0.831373 0
 }
 DEF TV Television {
-  translation 0 1.64 -0.72
+  translation 1.22 1.64 -0.72
 }
 DEF conveyor ConveyorBelt {
   translation 1 0 0.58
@@ -80,13 +80,17 @@ DEF conveyor ConveyorBelt {
 Can {
   translation 0.7 1.01 0.55
   name "can(13)"
+  color 0.305882 0.603922 0.0235294
+  textureUrl [
+    "textures/can_beer_base_color.jpg"
+  ]
 }
 Can {
   translation 2.1 1.04 0.55
   name "can(1)"
 }
 Pedestrian {
-  translation 2.06982e-06 1.27 1.07
+  translation 1.01 1.27 1.07
   rotation 0 1 0 3.14159
 }
 DEF UR3 UR3e {
