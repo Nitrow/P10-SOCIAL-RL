@@ -20,8 +20,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation 0.20437566120038692 -0.9744368936559998 -0.0932916362325711 5.44304110898544
-  position 1.929641577531434 1.6492642976386485 1.7785074464975852
+  orientation 0.4078599379404978 -0.7695311614306762 -0.49139806940028524 4.4198969978643365
+  position 0.9511681070833446 2.1979943850410844 0.42673529827262063
   exposure 1.7
 }
 TexturedBackground {
@@ -89,9 +89,116 @@ Pedestrian {
   translation 2.06982e-06 1.27 1.07
   rotation 0 1 0 3.14159
 }
-DEF UR3 UR3e {
+UR3e {
+  hidden linearVelocity_1 5.398449964623534e-07 1.3991978843790488e-11 -2.1612198143961655e-07
+  hidden angularVelocity_1 5.888520316899809e-09 -0.00017461871599607366 1.1893803655179386e-08
+  hidden linearVelocity_2 -2.019454952941651e-05 -9.573629829412876e-11 2.0521532588162227e-05
+  hidden angularVelocity_2 1.2713391953661612e-08 -0.00017439145504816346 2.5042831811634236e-08
+  hidden linearVelocity_3 -5.9584437380959024e-05 -6.016333371956666e-09 4.182351498755349e-06
+  hidden angularVelocity_3 1.9288057792087186e-08 -0.00017428226779828512 3.818963620654144e-08
+  hidden linearVelocity_4 -7.781446063062336e-05 -8.068391958376072e-09 4.069634041848232e-06
+  hidden angularVelocity_4 1.2061073607209781e-05 -0.00017425863945339477 5.127638923888352e-08
+  hidden linearVelocity_5 -7.757513298699375e-05 -2.7369254501124107e-09 2.208453107481629e-05
+  hidden angularVelocity_5 1.2068255267909728e-05 -0.00016709733875855452 6.468343547296679e-08
   translation 2.8277e-08 0.85 0.199999
   rotation -0.5773502691896258 -0.5773502691896258 -0.5773502691896258 2.0944
-  controller "basic_controller_supervisor"
-  supervisor TRUE
+  controller "basic_controller"
+  toolSlot [
+    SolidBox {
+      translation 0 0.05 0
+      size 0.05 0.1 0.03
+      appearance PBRAppearance {
+        baseColorMap ImageTexture {
+          url [
+            "textures/plastic.jpg"
+          ]
+        }
+        roughness 0.5
+        metalness 0
+      }
+      physics Physics {
+        mass 1
+      }
+    }
+    SliderJoint {
+      jointParameters JointParameters {
+        position 0.009999999532875515
+        axis -1 0 0
+        maxStop 1
+      }
+      device [
+        PositionSensor {
+        }
+        LinearMotor {
+          name "right_finger"
+          maxPosition 1
+        }
+      ]
+      endPoint SolidBox {
+        translation -0.03 0.119998 -1.89794e-06
+        rotation 0.9452327805878533 0.08592648084210364 -0.31488351876884024 -1.6961868057309853e-07
+        name "rightfinger"
+        size 0.01 0.06 0.01
+        appearance PBRAppearance {
+          baseColorMap ImageTexture {
+            url [
+              "textures/plastic.jpg"
+            ]
+          }
+          roughness 0.5
+          metalness 0
+        }
+        physics Physics {
+          mass 0.1
+          centerOfMass [
+            0 0 0
+          ]
+          inertiaMatrix [
+            1 1 1
+            0 0 0
+          ]
+        }
+      }
+    }
+    SliderJoint {
+      jointParameters JointParameters {
+        position 0.0099999998479038
+        axis 1 0 0
+        maxStop 1
+      }
+      device [
+        PositionSensor {
+        }
+        LinearMotor {
+          name "left_finger"
+          maxPosition 1
+        }
+      ]
+      endPoint SolidBox {
+        translation 0.03 0.12 4.1855e-07
+        rotation -0.9364431231437639 0.3508194245830809 -9.193448477083376e-05 -2.337718796626358e-08
+        name "leftfinger"
+        size 0.01 0.06 0.01
+        appearance PBRAppearance {
+          baseColorMap ImageTexture {
+            url [
+              "textures/plastic.jpg"
+            ]
+          }
+          roughness 0.5
+          metalness 0
+        }
+        physics Physics {
+          mass 0.1
+          centerOfMass [
+            0 0 0
+          ]
+          inertiaMatrix [
+            1 1 1
+            0 0 0
+          ]
+        }
+      }
+    }
+  ]
 }
