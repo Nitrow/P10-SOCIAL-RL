@@ -1,0 +1,114 @@
+#VRML_OBJ R2021a utf8
+UR3e {
+  hidden position_0_0 -2.5710603714007425e-06
+  hidden rotation_1 0 0 -1 2.5711304863481632e-06
+  hidden position_1_0 2.3127129062107373e-05
+  hidden linearVelocity_1 5.398449964623534e-07 1.3991978843790488e-11 -2.1612198143961655e-07
+  hidden angularVelocity_1 5.888520316899809e-09 -0.00017461871599607366 1.1893803655179386e-08
+  hidden rotation_2 0 0.9999999999999999 0 1.5708191271290615
+  hidden position_2_0 8.056114327439575e-06
+  hidden linearVelocity_2 -2.019454952941651e-05 -9.573629829412876e-11 2.0521532588162227e-05
+  hidden angularVelocity_2 1.2713391953661612e-08 -0.00017439145504816346 2.5042831811634236e-08
+  hidden rotation_3 0 1 0 8.056114043657481e-06
+  hidden position_3_0 2.076399795224771e-06
+  hidden linearVelocity_3 -5.9584437380959024e-05 -6.016333371956666e-09 4.182351498755349e-06
+  hidden angularVelocity_3 1.9288057792087186e-08 -0.00017428226779828512 3.818963620654144e-08
+  hidden rotation_4 0 1 0 1.570798076399795
+  hidden position_4_0 -7.144496905511632e-07
+  hidden linearVelocity_4 -7.781446063062336e-05 -8.068391958376072e-09 4.069634041848232e-06
+  hidden angularVelocity_4 1.2061073607209781e-05 -0.00017425863945339477 5.127638923888352e-08
+  hidden rotation_5 0 0 -1 7.146345858741917e-07
+  hidden position_5_0 7.146234831554916e-07
+  hidden linearVelocity_5 -7.757513298699375e-05 -2.7369254501124107e-09 2.208453107481629e-05
+  hidden angularVelocity_5 1.2068255267909728e-05 -0.00016709733875855452 6.468343547296679e-08
+  hidden rotation_6 0 0.9999999999999999 0 7.146345858741917e-07
+  hidden linearVelocity_6 -7.741436732475e-05 4.478080113437891e-09 3.952495473363127e-05
+  hidden angularVelocity_6 1.921692748224321e-05 -0.00016708523205955774 6.464860604011e-08
+  hidden linearVelocity_8 -8.40855457312799e-05 -7.577276485365616e-07 5.605902948149279e-05
+  hidden angularVelocity_8 1.921692614812384e-05 -0.0001670845816172363 6.465177651421468e-08
+  hidden linearVelocity_9 -7.0720598585511e-05 7.79495798725994e-07 5.605255739227374e-05
+  hidden angularVelocity_9 1.9216926126630816e-05 -0.00016708503023042843 6.464529673683962e-08
+  translation 2.8277e-08 0.85 0.199999
+  rotation -0.5773502691896258 -0.5773502691896258 -0.5773502691896258 2.0944
+  controller "basic_controller"
+  toolSlot [
+    SolidBox {
+      translation 0 0.05 0
+      size 0.05 0.1 0.03
+      appearance PBRAppearance {
+        baseColorMap ImageTexture {
+          url [
+            "textures/plastic.jpg"
+          ]
+        }
+        roughness 0.5
+        metalness 0
+      }
+      physics Physics {
+        mass 1
+      }
+    }
+    SliderJoint {
+      jointParameters JointParameters {
+        position 0.009999999532875515
+        axis -1 0 0
+      }
+      device [
+        PositionSensor {
+        }
+        LinearMotor {
+          name "left_finger"
+        }
+      ]
+      endPoint SolidBox {
+        translation -0.040000010749493 0.11999826783956422 -1.8980815931213257e-06
+        rotation 0.9452327805878533 0.08592648084210364 -0.31488351876884024 -1.6961868057309853e-07
+        size 0.01 0.06 0.01
+        appearance PBRAppearance {
+          baseColorMap ImageTexture {
+            url [
+              "textures/plastic.jpg"
+            ]
+          }
+          roughness 0.5
+          metalness 0
+        }
+        physics Physics {
+          mass 0.1
+        }
+      }
+    }
+    SliderJoint {
+      jointParameters JointParameters {
+        position 0.0099999998479038
+        axis 1 0 0
+        maxStop 0.06
+      }
+      device [
+        PositionSensor {
+        }
+        LinearMotor {
+          name "right_finger"
+          maxPosition 10
+        }
+      ]
+      endPoint SolidBox {
+        translation 0.03999999984737079 0.12000000008142905 4.186316074905605e-07
+        rotation -0.9364431231437639 0.3508194245830809 -9.193448477083376e-05 -2.337718796626358e-08
+        size 0.01 0.06 0.01
+        appearance PBRAppearance {
+          baseColorMap ImageTexture {
+            url [
+              "textures/plastic.jpg"
+            ]
+          }
+          roughness 0.5
+          metalness 0
+        }
+        physics Physics {
+          mass 0.1
+        }
+      }
+    }
+  ]
+}
