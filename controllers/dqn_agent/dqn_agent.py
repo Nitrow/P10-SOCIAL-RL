@@ -22,6 +22,7 @@ class UR():
         self.supervisor = Robot()
         self.robot = self.supervisor.getFromDef('TB')
         self.reset()
+        self.step_iteration = 0
         # Define reward parameters
         
         # Define goal

@@ -74,7 +74,8 @@ target = [ x,x,x]
 
 
 # Reset function - reset the controllers
-
+def reset():
+    pass
 # Reward function
 
 
@@ -84,18 +85,24 @@ target = [ x,x,x]
 " Description: Run the step function in the environment after setting up the action
 "
 """
-def play(action):
+def play_step(action):
     pass
 
-while supervisor.step(TIME_STEP) != -1:
-    counter += 1
-    set_joints(target, motors)
-    #print(counter)
 
-    y -= 0.001
-    target = [ x,y,x]
-    if counter > max_iter:
-        counter = 0
+while True:
+    game_over, reward = play_step(action)
+    
+    if game_over:
+        break
+# while supervisor.step(TIME_STEP) != -1:
+    # counter += 1
+    # set_joints(target, motors)
+    # #print(counter)
+
+    # y -= 0.001
+    # target = [ x,y,x]
+    # if counter > max_iter:
+        # counter = 0
         
         #supervisor.simulationReset()
         #conveyor_node.restartController()
