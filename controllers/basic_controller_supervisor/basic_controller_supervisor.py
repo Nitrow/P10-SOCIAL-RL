@@ -18,12 +18,11 @@ import ikpy.utils.plot as plot_utils
 # create the Robot instance.
 #robot = Robot()
 
-
-
 my_chain = Chain.from_urdf_file("../../resources/robot.urdf")
-
+target_orientation = [0, 0, 1]
 target_position = [ 0.1, -0.2, 0.1]
-target_joints = my_chain.inverse_kinematics(target_position)
+#target_joints = my_chain.inverse_kinematics(target_position)
+target_joints = my_chain.inverse_kinematics(target_position, target_orientation, orientation_mode="X")
 
 def set_joints(target, motors):
     

@@ -96,6 +96,10 @@ Pedestrian {
 DEF UR3 UR3e {
   translation 2.8277e-08 0.85 0.199999
   rotation -0.5773502691896258 -0.5773502691896258 -0.5773502691896258 2.0944
-  controller "basic_controller_supervisor"
+  controller "ikpy_tutorial"
   supervisor TRUE
+  toolSlot [
+    DEF TCP Transform {
+    }
+  ]
 }
