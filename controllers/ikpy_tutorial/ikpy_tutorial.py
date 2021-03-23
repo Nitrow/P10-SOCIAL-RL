@@ -13,7 +13,6 @@ import ikpy
 import torch
 from ikpy.chain import Chain
 import numpy as np
-import ikpy.utils.plot as plot_utils
 
 # create the Robot instance.
 #robot = Robot()
@@ -34,23 +33,23 @@ print("Requested orientation on the X axis: {} vs Reached orientation on the X a
 
 
 ur3_chain = Chain.from_urdf_file("../../resources/robot2.urdf")
-target_orientation = [0, 0, 1]
+target_orientation = np.eye(3)
 target_position = [ 0.1, -0.2, 0.1]
 #target_joints = []
 # Set the target orientation with regards to the X axis
-target_joints = ur3_chain.inverse_kinematics(target_position, target_orientation, orientation_mode="X")
+target_joints = ur3_chain.inverse_kinematics(target_position, target_orientation, orientation_mode="all")
+# print(target_joints)
 
-def set_joints(motors, targetPos, targetOr = [0,0,0]):
+def set_joints(motors, targetPos, targetOr = np.eye(3)):
     
-    target_joints = ur3_chain.inverse_kinematics(targetPos, targetOr,  orientation_mode="X")
+    target_joints = ur3_chain.inverse_kinematics(targetPos, targetOr,  orientation_mode="all")    
     # Let's see what are the final positions and orientations of the robot
     position = np.array(ur3_chain.forward_kinematics(target_joints)[:3, 3])
     orientation = np.array(ur3_chain.forward_kinematics(target_joints)[:3, 0])
+
     for i in range(len(motors)):
         motors[i].setPosition(target_joints[i+1])
     return position, orientation
-    #print("Requested position: {} vs Reached position: {}".format(targetPos, position))
-    #print("Requested orientation: {} vs Reached orientation: {}".format(targetOr, orientation))
 
 
 TIME_STEP = 32
@@ -102,24 +101,18 @@ for i in range(len(joint_names)):
     sensors[i] = supervisor.getDevice(joint_names[i]+'_sensor')
     sensors[i].enable(TIME_STEP)
 
-x = 0.3
-y = 0.3
-# targetPos = [ x,x,x]
+
 targetPos = [0,0,0]
-targetOr = [0,0,0]
+targetOr = np.array([0,0,1, 0,1,0, 1,0,0]).reshape(3,3)
 
 
 while supervisor.step(TIME_STEP) != -1:
     counter += 1
     pos_tcp_kin, rot_tcp_kin = set_joints(motors, targetPos, targetOr)
     pos_tcp, rot_tcp = getTCPposition()
-    print("Position: {}\t{}".format(np.around(pos_tcp_kin, 5), np.around(pos_tcp, 5)))
-    #print("Requested orientation: {} vs Reached orientation: {}".format(targetOr, orientation))
+    #print("Position: {}\t{}".format(np.around(pos_tcp_kin, 5), np.around(pos_tcp, 5)))
+    # print("Orientation: {}\n{}\n\n\n".format(np.around(rot_tcp_kin, 1), np.around(rot_tcp, 1)))
 
-    
-
-    #y -= 0.001
-    #targetPos = [ x,y,x]
     if counter > max_iter:
         counter = 0
 
