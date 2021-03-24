@@ -14,11 +14,10 @@ total_reward = 0
 record = 0
 counter = 0
 actions = [0.1, 0, 0, 0, 0.1, 0.1]
-env._execute(actions)
 
 # Helper functions
-plot_scores = []
-plot_mean_scores = []
+plot_rewards = []
+plot_mean_rewards = []
 
 while env.supervisor.step(timestep) != -1:
     # Observe the environment to get the state
@@ -33,7 +32,7 @@ while env.supervisor.step(timestep) != -1:
     # Observe the new environment
     new_state = agent.observe(env)
     
-    # train short memory
+    # train short memory (for single step)
     agent.train_short_memory(state, action, reward, new_state, done)
 
     # remember
@@ -41,6 +40,8 @@ while env.supervisor.step(timestep) != -1:
     
     # Keep track of the total rewards
     total_reward += reward
+    print(reward)
+    
     
     if done:
         env.reset()
@@ -53,9 +54,9 @@ while env.supervisor.step(timestep) != -1:
             record = total_reward
             agent.model.save()
         
-        plot_scores.append(score)
-        mean_score = total_reward / agent.n_games
-        plot_mean_scores.append(mean_score)
+        plot_rewards.append(total_reward)
+        mean_reward = total_reward / agent.n_games
+        plot_mean_rewards.append(mean_reward)
         
         total_reward = 0
         print('Game', agent.n_games, 'Score: ', total_reward, 'Record: ', record)   

@@ -73,9 +73,9 @@ class Environment():
         """
         self.step_iteration += 1
         self._execute(action)
-        self.supervisor.step(1)
+        #self.supervisor.step(1)
         reward = self.calculate_reward()
-        game_over = reward > -0.05
+        game_over = reward > -0.5
         return reward, game_over
 
 
@@ -108,7 +108,7 @@ class Environment():
         Generates a target, or finds one by itself
         """
         #self.target_pos = self.supervisor.getFromDef("BEER").getPosition()
-        self.target_pos = [0, 0, 1]
+        self.target_pos = [0, 0, 0.5]
       
         
     def _execute(self, action):
