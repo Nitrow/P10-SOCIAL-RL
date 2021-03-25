@@ -44,6 +44,7 @@ conveyor_node = supervisor.getFromDef("conveyor")
 tv_node = supervisor.getFromDef("TV")
 
 
+
 trans_field = robot_node.getField("translation")
 counter+=1
 
@@ -63,7 +64,7 @@ for i in range(len(joint_names)):
     motors[i].setPosition(target_joints[i])
     #motors[i].setPosition(float('inf'))
     #motors[i].setVelocity(1 * MAX_SPEED)
-    
+    print(supervisor.getSelected().getId())
     # Get sensors and enable them
     sensors[i] = supervisor.getDevice(joint_names[i]+'_sensor')
     sensors[i].enable(TIME_STEP)
@@ -100,7 +101,7 @@ while supervisor.step(TIME_STEP) != -1:
     
     
     y -= 0.001
-    target = [x, y, x]
+    target = [0,0,0]
     # target = [ x,y,x]
     if counter > max_iter:
         counter = 0

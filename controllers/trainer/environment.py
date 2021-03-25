@@ -22,7 +22,7 @@ class Environment():
         # Initiate the supervisor and the robot
         self.supervisor = Supervisor()
         self.robot = self.supervisor.getFromDef('UR3')
-        self.tcp = self.supervisor.getFromId(838)
+        self.tcp = self.supervisor.getFromId(854) # print(supervisor.getSelected().getId())
         # Get the robot position vector and rotation matrix
         self.robot_pos = np.array(self.robot.getPosition())
         self.robot_rot = np.transpose(np.array(self.robot.getOrientation()).reshape(3,3))
@@ -75,7 +75,7 @@ class Environment():
         self._execute(action)
         #self.supervisor.step(1)
         reward = self.calculate_reward()
-        game_over = reward > -0.5
+        game_over = reward > 0.05
         return reward, game_over
 
 
@@ -83,9 +83,12 @@ class Environment():
         """
         Calculates the reward
         """
-        self._getTCP()
-        self._getTarget()
-        dist2target = np.linalg.norm(self.target_pos - self.pos_tcp_wb)
+        if self.robot.getNumberOfContactPoints(True) > 0:
+            return -500
+        else:
+            self._getTCP()
+            self._getTarget()
+            dist2target = np.linalg.norm(self.target_pos - self.pos_tcp_wb)
         
         return -dist2target
 
@@ -108,7 +111,7 @@ class Environment():
         Generates a target, or finds one by itself
         """
         #self.target_pos = self.supervisor.getFromDef("BEER").getPosition()
-        self.target_pos = [0, 0, 0.5]
+        self.target_pos = [0, 0, 0]
       
         
     def _execute(self, action):
