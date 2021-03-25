@@ -1,0 +1,109 @@
+#VRML_SIM R2021a utf8
+WorldInfo {
+  info [
+    "Unviversal Robot UR3e, UR5e and UR10e grasping cans using Robotiq 3F grippers."
+  ]
+  title "Universal Robot"
+  basicTimeStep 8
+  physicsDisableAngularThreshold 0.1
+  coordinateSystem "NUE"
+  contactProperties [
+    ContactProperties {
+      bounce 0.1
+    }
+    ContactProperties {
+      material1 "slope"
+      coulombFriction [
+        0.5
+      ]
+    }
+  ]
+}
+Viewpoint {
+  orientation 0.2903691575048642 -0.9119571959194486 -0.2898617345919465 4.633304373477988
+  position 2.5685523538951287 2.589139900333031 0.4263508020265243
+  exposure 1.7
+}
+TexturedBackground {
+  texture "factory"
+}
+Floor {
+  translation 1 0 1
+  size 15 15
+  appearance ThreadMetalPlate {
+  }
+}
+Table {
+  size 0.8 0.85 0.6
+  feetSize 0.05 0.05
+  frameThickness 0.017
+  trayAppearance GlossyPaint {
+    baseColor 0.643137 0 0
+  }
+  legAppearance RustyMetal {
+  }
+}
+PlasticCrate {
+  translation -0.78 0 -0.22
+  color 0.203922 0.396078 0.643137
+}
+PlasticCrate {
+  translation 0.01 0 -0.67
+  name "plastic crate(2)"
+}
+PlasticCrate {
+  translation 0.72 0 -0.18
+  name "plastic crate(1)"
+  color 0.305882 0.603922 0.0235294
+}
+PlasticCrate {
+  translation 1.69 0 1.12
+  name "plastic crate(3)"
+  color 0.929412 0.831373 0
+}
+DEF TV Television {
+  translation 1.22 1.64 -0.72
+}
+DEF BEER Can {
+  translation 0.31 0.91 -0.05
+  name "can(13)"
+  color 0.305882 0.603922 0.0235294
+  textureUrl [
+    "textures/can_beer_base_color.jpg"
+  ]
+}
+DEF CONVEYOR ConveyorBelt {
+  translation 1.00119 0 -1.14
+  rotation 0 1 0 3.141
+  size 4 0.8 0.165
+  appearance CorrugatedMetal {
+    colorOverride 0.12549 0.290196 0.529412
+    textureTransform TextureTransform {
+      scale 2 2
+    }
+  }
+}
+Can {
+  translation 2.1 1.04 0.55
+  name "can(1)"
+}
+Pedestrian {
+  translation 1.01 1.27 1.07
+  rotation 0 1 0 3.14159
+}
+DEF UR3 UR3e {
+  translation 2.8277e-08 0.85 0.199999
+  rotation -0.5773502691896258 -0.5773502691896258 -0.5773502691896258 2.0944
+  controller "trainer"
+  controllerArgs [
+    ""
+    ""
+    ""
+  ]
+  supervisor TRUE
+  toolSlot [
+    DEF TCP Transform {
+      rotation 0 -1 0 -0.261795307179586
+    }
+  ]
+}

@@ -27,7 +27,7 @@ target_joints = my_chain.inverse_kinematics(target_position, target_orientation,
 def set_joints(target, motors):
     
     target_joints = my_chain.inverse_kinematics(target)
-    print("Moving to position {}\t{}".format(target, target_joints))
+    #print("Moving to position {}\t{}".format(target, target_joints))
     for i in range(len(motors)):
         motors[i].setPosition(target_joints[i+1])
 
@@ -42,7 +42,8 @@ supervisor = Supervisor()
 robot_node = supervisor.getFromDef("UR3")
 conveyor_node = supervisor.getFromDef("conveyor")
 tv_node = supervisor.getFromDef("TV")
-    
+
+
 trans_field = robot_node.getField("translation")
 counter+=1
 
@@ -90,9 +91,17 @@ while supervisor.step(TIME_STEP) != -1:
     counter += 1
     set_joints(target, motors)
     #print(counter)
-
+    
+    if (robot_node.getNumberOfContactPoints(True)):
+        contactpoints = robot_node.getNumberOfContactPoints(True)
+        print("{} contact points found!".format(contactpoints))
+        for x in range(contactpoints):
+            print('\t',robot_node.getContactPoint(x))
+    
+    
     y -= 0.001
-    target = [ x,y,x]
+    target = [x, y, x]
+    # target = [ x,y,x]
     if counter > max_iter:
         counter = 0
         

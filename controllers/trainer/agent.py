@@ -2,7 +2,7 @@ import torch
 import random
 import numpy as np
 from collections import deque
-from model import Linear_QNet, QTrainer
+from models.dqn import DQN_Linear, DQN_Trainer
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
@@ -16,8 +16,8 @@ class Agent():
         self.gamma = 0.9 # discount rate
         self.n_actions = 6 # number of actions
         self.memory = deque(maxlen=MAX_MEMORY) # if exceeds memory it calls pop(left)
-        self.model = Linear_QNet(18, 156, self.n_actions)
-        self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
+        self.model = DQN_Linear(18, 156, self.n_actions)
+        self.trainer = DQN_Trainer(self.model, lr=LR, gamma=self.gamma)
 
     def observe(self, environment):
         state = environment.getState()
