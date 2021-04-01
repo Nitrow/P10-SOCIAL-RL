@@ -32,7 +32,7 @@ class CriticNetwork(nn.Module):
 
         self.optimizer = optim.Adam(self.parameters(), lr=beta)
         # Take advantage of
-        self.device = T.device('cpu')
+        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
 
     def forward(self, state, action):
@@ -75,7 +75,7 @@ class ValueNetwork(nn.Module):
 
         self.optimizer = optim.Adam(self.parameters(), lr=beta)
 
-        self.device = T.device('cpu')
+        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
 
     def forward(self, state):
@@ -120,7 +120,7 @@ class ActorNetwork(nn.Module):
 
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
 
-        self.device = T.device('cpu')
+        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
 
     def forward(self, state):
@@ -133,7 +133,6 @@ class ActorNetwork(nn.Module):
         prob = F.relu(prob)
 
         mu = self.mu(prob)
-        #print(prob.shape,state.shape, mu.shape, '\t', mu)
         sigma = self.sigma(prob)
         # The standard distribution is clamped between a min and max value,
         # here it's a tiny bit higher than 0, as 0 would give errors
@@ -147,15 +146,15 @@ class ActorNetwork(nn.Module):
         Need a normal distribution of the continuous action space
         """
         mu, sigma = self.forward(state)
-        
         # Distribution of actions, defined by the mean and standard deviation
-        probabilities = Normal(loc=mu, scale=sigma)
-            
+        probabilities = Normal(mu, sigma)
+
         if reparameterize:
             # Adding some noise (exploration factor) to the distribution
             actions = probabilities.rsample()
         else:
             actions = probabilities.sample()
+
         # Tanh gives an action between -1 and 1, which is scaled by the "max_axtion"
         action = T.tanh(actions)*T.tensor(self.max_action).to(self.device)
         # Log prob for the loss function

@@ -8,7 +8,7 @@ MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
 LR = 0.001
 
-class Agent():
+class DQN_Agent():
 
     def __init__(self):
         self.n_games = 0 # number of games
@@ -21,6 +21,7 @@ class Agent():
 
     def observe(self, environment):
         state = environment.getState()
+        print(state.high)
         #return np.array(state, dtype=int)
         return np.array(state)
 
@@ -45,13 +46,13 @@ class Agent():
         self.trainer.train_step(states, actions, rewards, next_states, dones)
 
 
-    def train_short_memory(self, state, action, reward, next_state, done):
+    def learn(self, state, action, reward, next_state, done):
         """
         Training the agent for only one step
         """
         self.trainer.train_step(state, action, reward, next_state, done)
 
-    def get_action(self, state):
+    def choose_action(self, state):
         # random moves: tradeoff between exploration and exploitation
         # With probability epsilon take a random action
         self.epsilon = 80 - self.n_games
@@ -66,3 +67,5 @@ class Agent():
             #move = torch.argmax(prediction).item()  # item converts tensor to a single value
             final_move = prediction.tolist()
         return final_move
+        
+ 

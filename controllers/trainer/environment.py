@@ -22,7 +22,8 @@ class Environment():
         # Initiate the supervisor and the robot
         self.supervisor = Supervisor()
         self.robot = self.supervisor.getFromDef('UR3')
-        self.tcp = self.supervisor.getFromId(854) # print(supervisor.getSelected().getId())
+        self.tcp = self.supervisor.getFromId(855) # print(supervisor.getSelected().getId())
+        #print(self.supervisor.getSelected().getId())
         # Get the robot position vector and rotation matrix
         self.robot_pos = np.array(self.robot.getPosition())
         self.robot_rot = np.transpose(np.array(self.robot.getOrientation()).reshape(3,3))
@@ -121,7 +122,7 @@ class Environment():
         """
         for i in range(len(action)):
             self.motors[i].setPosition(float('inf'))
-            self.motors[i].setVelocity(action[i])
+            self.motors[i].setVelocity(float(action[i]))
     
     
     def _world2robotFrame(self, position):
