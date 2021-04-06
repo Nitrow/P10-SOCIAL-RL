@@ -15,9 +15,8 @@ timestep = env.TIME_STEP
 
 total_rewards = 0
 total_reward = 0
-record = 0
+record = -9999999
 counter = 0
-actions = [0.1, 0, 0, 0, 0.1, 0.1]
 
 # Helper functions
 plot_rewards = []
@@ -34,13 +33,13 @@ while env.supervisor.step(timestep) != -1:
     action, prob, val = agent.choose_action(state)
     
     # Execute the action
-    reward, done = env.play_step(action)
+    reward = env.play_step(action)
     
     # Observe the new environment
     #new_state = agent.observe(env)
     
     # remember
-    agent.remember(state, action, prob, val, reward, done)
+    agent.remember(state, action, prob, val, reward, env.episode_over)
     if n_episode_step % N == 0:
         agent.learn()
         learn_iters += 1
@@ -50,15 +49,14 @@ while env.supervisor.step(timestep) != -1:
 
     # Keep track of the total rewards
     total_reward += reward
-    print("Episode {} \t Step {} \t Reward {}".format(agent.n_games, n_episode_step, reward))
+    print("Episode {} \t Step {} \t Reward {}\t Total Reward: {}\t Collision: {}".format(agent.n_games, n_episode_step, reward, total_reward, env.collision))
 
     # Increase episode's step number
     n_episode_step += 1
     
     
     
-    if done:
-        env.reset()
+    if env.episode_over:
         agent.n_games += 1
         n_episode_step = 0
         #agent.train_long_memory()
@@ -72,7 +70,7 @@ while env.supervisor.step(timestep) != -1:
             
         plot_rewards.append(total_reward)
         mean_reward = total_reward / agent.n_games
-        plot_mean_rewards.append(mean_reward)
-        
+        plot_mean_rewards.append(mean_reward)   
+        print('Episode', agent.n_games, env.episode_over,' \t Total reward: ', total_reward, 'Record: ', record)
         total_reward = 0
-        print('Episode', agent.n_games, ' Done! \t Score: ', total_reward, 'Record: ', record)   
+        env.reset()  

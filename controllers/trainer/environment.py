@@ -32,9 +32,10 @@ class Environment():
         self.ur3_chain = Chain.from_urdf_file("../../resources/robot2.urdf")
         
         # Set target position
-        self.target_pos = []
+        self.target_pos = self.supervisor.getFromDef('TARGET').getPosition()
         
         self.episode_over = False
+        self.collision = False
         # Position of the TCP both from WeBots and from the kinematics equations
         
         self.pos_tcp_wb = [] # TCP position from WeBots
@@ -63,9 +64,13 @@ class Environment():
         """
         Resetting the environment
         """
+        self.collision = False
+        self.step_iteration = 0
+        self.episode_over = False
         self.supervisor.simulationReset()
         self.conveyor_node.restartController()
         self.tv_node.restartController()
+        self.supervisor.simulationResetPhysics()
         
         
     def play_step(self, action):
@@ -76,21 +81,23 @@ class Environment():
         self._execute(action)
         #self.supervisor.step(1)
         reward = self.calculate_reward()
-        game_over = reward > 0.05
-        return reward, game_over
+        return reward
 
 
     def calculate_reward(self):
         """
         Calculates the reward
         """
-        if self.robot.getNumberOfContactPoints(True) > 0:
+        self.collision = True if self.robot.getNumberOfContactPoints(True) > 0 else False
+        if  self.collision and self.step_iteration > 10:
+            print(self.robot.getNumberOfContactPoints(True))
+            self.episode_over = True
             return -500
         else:
             self._getTCP()
             self._getTarget()
             dist2target = np.linalg.norm(self.target_pos - self.pos_tcp_wb)
-        
+            self.episode_over = True if dist2target < 0.05 else False
         return -dist2target
 
 
@@ -112,7 +119,7 @@ class Environment():
         Generates a target, or finds one by itself
         """
         #self.target_pos = self.supervisor.getFromDef("BEER").getPosition()
-        self.target_pos = [0, 0, 0]
+        self.target_pos = self._world2robotFrame(self.supervisor.getFromDef('TARGET').getPosition())  # [0, 0, 0]
       
         
     def _execute(self, action):
@@ -130,6 +137,8 @@ class Environment():
         Changes the position from the world frame to the robot frame
         """
         # Get the relative translation between the robot and the target
+        self.robot_rot = np.transpose(np.array(self.robot.getOrientation()).reshape(3,3))
+        self.robot_pos = np.array(self.robot.getPosition())
         target_position = np.subtract(np.array(position), self.robot_pos)
         # Matrix multiplication to get the target position relative to the robot
         target_position = np.dot(self.robot_rot, target_position)
@@ -157,5 +166,8 @@ class Environment():
         """
         # Get the position of the TCP
         self.pos_tcp_wb = self.tcp.getPosition()
+        #self.tcp_aid.setSFVec3f(list(self.pos_tcp_wb))
         # Transform it into the robot's frame
         self.pos_tcp_wb = self._world2robotFrame(self.pos_tcp_wb)
+        
+        #self.tcp_aid.setSFVec3f(list(self.pos_tcp_wb))

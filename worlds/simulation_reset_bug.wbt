@@ -20,8 +20,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation 0.2903691575048642 -0.9119571959194486 -0.2898617345919465 4.633304373477988
-  position 2.5685523538951287 2.589139900333031 0.4263508020265243
+  orientation -0.011732008373748505 -0.9998884576928163 0.009242951487450484 4.650466277376557
+  position 1.902747544524107 1.3002729332080742 0.022423817149500726
   exposure 1.7
 }
 TexturedBackground {
@@ -101,4 +101,40 @@ DEF UR3 UR3e {
       rotation 0 -1 0 -0.261795307179586
     }
   ]
+}
+DEF TARGET Solid {
+  translation 0 1.25 0
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0.4 0.8 0.8
+          emissiveColor 0.541176 0.886275 0.203922
+          shininess 0
+          transparency 0.9
+        }
+      }
+      geometry Sphere {
+        radius 0.05
+      }
+    }
+  ]
+}
+DEF TCP_AID Solid {
+  translation 0.29 1.25 0
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0.4 0.8 0.8
+          shininess 0
+          transparency 0.3
+        }
+      }
+      geometry Sphere {
+        radius 0.05
+      }
+    }
+  ]
+  name "solid(1)"
 }

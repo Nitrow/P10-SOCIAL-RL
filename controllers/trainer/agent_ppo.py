@@ -209,7 +209,7 @@ class PPO_Agent:
 
                 critic_value = self.critic(states)
                 critic_value = T.squeeze(critic_value)
-                print('New: ', new_probs.shape, 'Old: ', old_probs.shape)
+                #print('New: ', new_probs.shape, 'Old: ', old_probs.shape)
                 prob_ratio = new_probs.exp() / old_probs.exp()
                 # prob_ratio = (new_probs - old_probs).exp()
                 weighted_probs = advantage[batch] * prob_ratio
