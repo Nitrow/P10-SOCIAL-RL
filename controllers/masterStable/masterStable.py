@@ -1,4 +1,3 @@
-#!/usr/bin/env python3.8
 import gym
 import numpy as np
 import P10_RL_env_v01
@@ -10,7 +9,6 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
 
 
-print(th.__version__)
 
 policy_kwargs = dict(activation_fn=th.nn.ReLU,
                      net_arch=[dict(pi=[256, 256], vf=[256, 256])])
@@ -21,12 +19,8 @@ env = gym.make('P10_RL-v0')
 n_actions = env.action_space.shape[-1]
 action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.001 * np.ones(n_actions))
 
-<<<<<<< HEAD
 #model =  PPO("MlpPolicy", env, learning_rate=0.0003, verbose=2, tensorboard_log="/home/asger/P10-XRL/controllers/masterStable/tensorboard")
 model = TQC("MlpPolicy", env, top_quantiles_to_drop_per_net=2, verbose=1)
-=======
-model =  PPO("MlpPolicy", env, learning_rate=0.0003, verbose=2, tensorboard_log="/home/P10-XRL/controllers/masterStable/tensorboard")
->>>>>>> 6bfb1498f8d76422131ff12ed13771e4caf60f65
 model.learn(total_timesteps=10000000, log_interval=1)
 model.save("ppo_p10")
 env = model.get_env()

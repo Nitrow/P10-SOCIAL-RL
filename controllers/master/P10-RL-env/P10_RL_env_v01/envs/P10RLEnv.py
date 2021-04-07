@@ -27,7 +27,7 @@ class P10RLEnv(gym.Env):
         selfconveyor_node = self.supervisor.getFromDef("conveyor")
         self.tv_node = self.supervisor.getFromDef("TV")
         self.can_node = self.supervisor.getFromDef("can")
-        self.goal = self.supervisor.getFromDef("goal").getField("translation")
+        self.goal = self.supervisor.getFromDef("TARGET").getField("translation")
         self.collision1 = self.supervisor.getDevice("touch_sensor1")
         self.collision2 = self.supervisor.getDevice("touch_sensor2")
         self.collision3 = self.supervisor.getDevice("touch_sensor3")
@@ -92,7 +92,7 @@ class P10RLEnv(gym.Env):
         
         if self.success == True:
                 
-            self.goal.setSFVec3f([random.uniform(-0.3, 0.35), 0.85, 0.59])
+            self.goal.setSFVec3f([random.uniform(-0.3, 0.35), 1.25, 0])
         
             self.target = np.array(self.goal.getSFVec3f())
             
@@ -168,8 +168,10 @@ class P10RLEnv(gym.Env):
         #print("DISTANCE:", self.distance)
 
         reward = -self.distance
-
-
+        
+        
+        print(self.target)
+        print(self.distance)
 
         #make reward for getting closer to can.. d = ((x2 - x1)2 + (y2 - y1)2 + (z2 - z1)2)1/2
 
