@@ -18,11 +18,13 @@ class Environment():
         Initilializing the environment
         """
         # Define the time step
-        self.TIME_STEP = 8
+        self.TIME_STEP = 16
         # Initiate the supervisor and the robot
         self.supervisor = Supervisor()
         self.robot = self.supervisor.getFromDef('UR3')
-        self.tcp = self.supervisor.getFromId(855) # print(supervisor.getSelected().getId())
+        self.tcp = self.supervisor.getFromId(1145)
+        #self.tcp_aid = self.supervisor.getFromDef('TCP_AID').getField("translation")
+        #print(self.supervisor.getSelected().getId())
         #print(self.supervisor.getSelected().getId())
         # Get the robot position vector and rotation matrix
         self.robot_pos = np.array(self.robot.getPosition())
@@ -38,6 +40,10 @@ class Environment():
         self.collision = False
         # Position of the TCP both from WeBots and from the kinematics equations
         
+        # Reward functio ncomponents
+        self.reward_collision = -1000
+        self.reward_success = 1000
+        
         self.pos_tcp_wb = [] # TCP position from WeBots
         self.pos_tcp_fk = [] # TCP position from kinematics
         
@@ -51,12 +57,14 @@ class Environment():
                             
         self.motors = [0] * len(self.joint_names)
         self.sensors = [0] * len(self.joint_names)
+        self.touch_sensors = [0] * (len(self.joint_names)+1)
         
         self.conveyor_node = self.supervisor.getFromDef('CONVEYOR')
         self.tv_node = self.supervisor.getFromDef('TV')
         
         self._getTarget()
         self._getmotors()
+        self._getsensors()
         self._getTCP()
                             
         
@@ -88,17 +96,22 @@ class Environment():
         """
         Calculates the reward
         """
-        self.collision = True if self.robot.getNumberOfContactPoints(True) > 0 else False
+        # Check for collision
+        self.collision = self._isCollision() #True if self.robot.getNumberOfContactPoints(True) > 0 else False
         if  self.collision and self.step_iteration > 10:
-            print(self.robot.getNumberOfContactPoints(True))
             self.episode_over = True
-            return -500
+            return self.reward_collision
         else:
             self._getTCP()
             self._getTarget()
             dist2target = np.linalg.norm(self.target_pos - self.pos_tcp_wb)
-            self.episode_over = True if dist2target < 0.05 else False
-        return -dist2target
+                    # Check timestep
+            if self.step_iteration >= 1000:
+                self.episode_over = True
+            if dist2target < 0.05:
+                self.episode_over = True
+                return self.reward_success
+            return -dist2target
 
 
     def getState(self):
@@ -157,6 +170,18 @@ class Environment():
             # Get sensors and enable them
             self.sensors[i] = self.supervisor.getDevice(self.joint_names[i]+'_sensor')
             self.sensors[i].enable(self.TIME_STEP)
+            
+    def _isCollision(self):
+        return any([self.touch_sensors[i].getValue() for i in range(len(self.touch_sensors))])
+    
+    def _getsensors(self):
+        """
+        Initializes the motors and their sensors
+        """
+        for i in range(len(self.touch_sensors)):
+            # Get motors
+            self.touch_sensors[i] = self.supervisor.getDevice("touch_sensor"+str(i+1))
+            self.touch_sensors[i].enable(self.TIME_STEP)
 
 
     def _getTCP(self):

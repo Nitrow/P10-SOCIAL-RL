@@ -4,6 +4,7 @@ from environment import Environment
 from agent_dqn import DQN_Agent
 from agent_sac import SAC_Agent
 from agent_ppo import PPO_Agent
+from utils import plot_learning_curve
 
 # Create an environment
 env = Environment()
@@ -15,7 +16,7 @@ timestep = env.TIME_STEP
 
 total_rewards = 0
 total_reward = 0
-record = -9999999
+record = -9999
 counter = 0
 
 # Helper functions
@@ -49,7 +50,7 @@ while env.supervisor.step(timestep) != -1:
 
     # Keep track of the total rewards
     total_reward += reward
-    print("Episode {} \t Step {} \t Reward {}\t Total Reward: {}\t Collision: {}".format(agent.n_games, n_episode_step, reward, total_reward, env.collision))
+    print("Episode {} \t Step {} \t Reward {}\t Total Reward: {}\t Collision: {}".format(agent.n_games, n_episode_step, reward, int(total_reward), env.collision))
 
     # Increase episode's step number
     n_episode_step += 1
@@ -74,3 +75,5 @@ while env.supervisor.step(timestep) != -1:
         print('Episode', agent.n_games, env.episode_over,' \t Total reward: ', total_reward, 'Record: ', record)
         total_reward = 0
         env.reset()  
+        x = [i+1 for i in range(len(plot_rewards))]
+        plot_learning_curve(x, plot_rewards, 'plots/ppo-2021-04-06')

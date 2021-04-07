@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.8
 import gym
 import numpy as np
 import P10_RL_env_v01
@@ -17,7 +18,7 @@ env = gym.make('P10_RL-v0')
 n_actions = env.action_space.shape[-1]
 action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.001 * np.ones(n_actions))
 
-model =  PPO("MlpPolicy", env, learning_rate=0.0003, verbose=2, tensorboard_log="/home/asger/P10-XRL/controllers/masterStable/tensorboard")
+model =  PPO("MlpPolicy", env, learning_rate=0.0003, verbose=2, tensorboard_log="/home/P10-XRL/controllers/masterStable/tensorboard")
 model.learn(total_timesteps=10000000, log_interval=1)
 model.save("ppo_p10")
 env = model.get_env()
