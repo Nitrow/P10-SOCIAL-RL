@@ -10,19 +10,18 @@ if __name__ == '__main__':
     env = gym.make('P10_RL-v0')
     best_score = -np.inf
     load_checkpoint = False
-    n_games = 10000
     agent = Agent(alpha=0.001, beta=0.001, 
                 input_dims=env.observation_space.shape, tau=0.005,
                 env=env, batch_size=100, layer1_size=400, layer2_size=300,
                 n_actions=env.action_space.shape[0])
-    n_games = 1500
+    n_games = 3000
     filename = 'Walker2d_' + str(n_games) + '_2.png'
     figure_file = 'plots/' + filename
 
     best_score = env.reward_range[0]
     score_history = []
 
-    agent.load_models()
+    #agent.load_models()
 
     for i in range(n_games):
         observation = env.reset()
