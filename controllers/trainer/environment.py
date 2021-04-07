@@ -22,9 +22,9 @@ class Environment():
         # Initiate the supervisor and the robot
         self.supervisor = Supervisor()
         self.robot = self.supervisor.getFromDef('UR3')
-        self.tcp = self.supervisor.getFromId(1145)
+        self.tcp = self.supervisor.getFromId(816)
         #self.tcp_aid = self.supervisor.getFromDef('TCP_AID').getField("translation")
-        #print(self.supervisor.getSelected().getId())
+        print(self.supervisor.getSelected().getId())
         #print(self.supervisor.getSelected().getId())
         # Get the robot position vector and rotation matrix
         self.robot_pos = np.array(self.robot.getPosition())
