@@ -165,8 +165,12 @@ class PPO_Agent:
         dist = self.actor(state)
         
         value = self.critic(state)
+<<<<<<< HEAD:controllers/master/agent_ppo.py
         action = dist.sample()
         #print("BEFORE: ", action)
+=======
+        action = dist.sample().to(self.actor.device)
+>>>>>>> de35a1bb681ef65b76ed77c1af7d9e4dc6d5f588:controllers/trainer/agent_ppo.py
         action = T.tanh(action)*T.tensor(self.max_action).to(self.actor.device)
         #print("AFTER: ", action)
         # squeeze removes the batch dimension, item makes the tensor into an integer
