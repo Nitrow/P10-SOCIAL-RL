@@ -28,6 +28,8 @@ class P10RLEnv(gym.Env):
         self.tv_node = self.supervisor.getFromDef("TV")
         self.can_node = self.supervisor.getFromDef("can")
         self.goal = self.supervisor.getFromDef("TARGET").getField("translation")
+        # Plotting functions
+        self.plot_rewards = []
         self.collision1 = self.supervisor.getDevice("touch_sensor1")
         self.collision2 = self.supervisor.getDevice("touch_sensor2")
         self.collision3 = self.supervisor.getDevice("touch_sensor3")
@@ -78,11 +80,7 @@ class P10RLEnv(gym.Env):
         self.observation_space = spaces.Box(low=-10, high=10, shape=(7,), dtype=np.uint8)
 
     def reset(self):
-        
-        
-        
-        
-        
+
         self.supervisor.simulationReset()
         self.counter = 0
         #self.supervisor.step(self.TIME_STEP)
@@ -108,11 +106,6 @@ class P10RLEnv(gym.Env):
                     self.motors[i].setVelocity(float(action[i]))
         
         self.supervisor.step(self.TIME_STEP)
-
-
-
-   
-
            
         rot_ur3e = np.array(self.robot_node.getOrientation())
 
@@ -125,15 +118,7 @@ class P10RLEnv(gym.Env):
 
         self.box_pos_world = np.array(self.box.getPosition())
         
-        
-        
 
-        #box_pos_world = np.subtract(box_pos_world, pos_ur3e)
-
-        #box_pos_robot = np.dot(rot_ur3e, box_pos_world)t
-
-
-        
         self.distance = distance.euclidean(self.box_pos_world, self.target)
 
         state = [self.sensors[0].getValue(), self.sensors[1].getValue(), self.sensors[2].getValue(), self.sensors[3].getValue(), self.sensors[4].getValue(), self.distance, self.target[0]]
@@ -197,3 +182,13 @@ class P10RLEnv(gym.Env):
 
     def getState(self):
         pass
+        
+    def plot_learning_curve(self):
+        self.plot_rewards.append(self.total_rewards)
+        x = [i+1 for i in range(len(self.plot_rewards))]
+        running_avg = np.zeros(len(self.plot_rewards))
+        for i in range(len(running_avg)):
+            running_avg[i] = np.mean(self.plot_rewards[max(0, i-100):(i+1)])
+        plt.plot(x, running_avg)
+        plt.title('Running average of previous 100 scores')
+        plt.savefig(self.figure_file)

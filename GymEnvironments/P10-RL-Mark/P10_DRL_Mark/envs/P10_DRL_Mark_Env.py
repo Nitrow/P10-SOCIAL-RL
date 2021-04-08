@@ -58,14 +58,14 @@ class P10_DRL_Mark_Env(gym.Env):
         self.plot_rewards = []
         self.total_rewards = 0
         self.collisionReward = -300 
-        self.distanceReward = -1
+        self.distanceReward = -0.1
         self.distanceDeltaReward = 100
         self.successReward = 1000
-        self.rewardstr = "success {}, collision {} distance {}".format(self.successReward, self.collisionReward, self.distanceReward)
+        self.rewardstr = "success {}, collision {} distance {}".format(self.successReward, self.collisionReward, self.distanceDeltaReward)
         self.figure_file="plots/{} - Rewards {} - Timeout at {}".format(str(datetime.now())[:-7], self.rewardstr, str(self.timeout))
         
-        print(self.goal_node.getSFVec3f())
-        self.target = [round(random.uniform(-0.3, 0.35),2), 0.85, 0.59]
+        #print(self.goal_node.getSFVec3f())
+        self.target = [round(random.uniform(-0.3, 0.35),2), 0.85, random.uniform(0.4, 0.5)]
         self.oldDistance = 0
         self.distance = 0
         self.tcp_pos_world = self.tcp.getPosition()
@@ -80,7 +80,7 @@ class P10_DRL_Mark_Env(gym.Env):
         self.counter = 0
         
         if self.success == True:
-            self.target = [random.uniform(-0.3, 0.35), 1.25, 0]
+            self.target = [random.uniform(-0.3, 0.35), 0.85, random.uniform(0.4, 0.5)]
             self.success = False
         self.supervisor.step(8)
         self.goal_node.setSFVec3f(self.target)
