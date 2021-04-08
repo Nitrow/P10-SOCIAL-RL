@@ -20,7 +20,7 @@ class P10RLEnv(gym.Env):
 
     def __init__(self):
 
-        TIME_STEP = 32
+        self.TIME_STEP = 32
 
         self.supervisor = Supervisor()
         self.robot_node = self.supervisor.getFromDef("UR3")
@@ -34,11 +34,11 @@ class P10RLEnv(gym.Env):
         self.collision4 = self.supervisor.getDevice("touch_sensor4")
         self.collision5 = self.supervisor.getDevice("touch_sensor5")
  
-        self.collision1.enable(TIME_STEP)
-        self.collision2.enable(TIME_STEP)
-        self.collision3.enable(TIME_STEP)
-        self.collision4.enable(TIME_STEP)
-        self.collision5.enable(TIME_STEP)
+        self.collision1.enable(self.TIME_STEP)
+        self.collision2.enable(self.TIME_STEP)
+        self.collision3.enable(self.TIME_STEP)
+        self.collision4.enable(self.TIME_STEP)
+        self.collision5.enable(self.TIME_STEP)
 
         self.box = self.supervisor.getFromDef('UR_END')
 
@@ -63,7 +63,7 @@ class P10RLEnv(gym.Env):
 
             # Get sensors and enable them
             self.sensors[i] = self.supervisor.getDevice(self.joint_names[i] + '_sensor')
-            self.sensors[i].enable(TIME_STEP)
+            self.sensors[i].enable(self.TIME_STEP)
 
         
         self.done = True
@@ -85,11 +85,11 @@ class P10RLEnv(gym.Env):
         
         self.supervisor.simulationReset()
         self.counter = 0
-        self.supervisor.step(32)
-        self.supervisor.step(32)
-        self.supervisor.step(32)
-
-        
+        #self.supervisor.step(self.TIME_STEP)
+        #self.supervisor.step(self.TIME_STEP)
+        #self.supervisor.step(self.TIME_STEP)
+        print('\n ------------------------------------ RESET ------------------------------------ \n')
+        print(self.counter)
         if self.success == True:
                 
             self.goal.setSFVec3f([random.uniform(-0.3, 0.35), 1.25, 0])
@@ -97,40 +97,17 @@ class P10RLEnv(gym.Env):
             self.target = np.array(self.goal.getSFVec3f())
             
         self.done = False    
-        
-        
-        
-        
-        
+
         state = [self.sensors[0].getValue(), self.sensors[1].getValue(), self.sensors[2].getValue(), self.sensors[3].getValue(), self.sensors[4].getValue(), self.distance, self.target[0]]
-        
-       
 
         return np.asarray(state)
 
     def step(self, action):
 
-
-
-        #print(self.goal.getPosition(uniform(-0.3, 0.35), 0.85, 0.65 ))
-
-
-        #target_position = [self.box_pos_world[0] + action[0], self.box_pos_world[1] + action[1], self.box_pos_world[2] + action[2]]
-        #target_joints = self.my_chain.inverse_kinematics(target_position)
-
-        #for i in range(len(self.joint_names)-1):
-        #            self.motors[i].setPosition(self.sensors[i].getValue()+float(action[i]))
-                    #print(self.sensors[i].getValue()+float(action[i]))
         for i in range(len(self.joint_names)-1):
                     self.motors[i].setVelocity(float(action[i]))
-
-
-        #for i in range(len(self.joint_names)):
-        #            self.motors[i].setPosition(target_joints[i+1])
-            #self.supervisor.step(8)
-
-        #while abs(self.box_pos_world[0] - self.target_position[0]) > 0.02 and abs(self.box_pos_world[1] - self.target_position[1]) > 0.02 and abs(self.box_pos_world[2] - self.target_position[2]) > 0.02:
-        self.supervisor.step(32)
+        
+        self.supervisor.step(self.TIME_STEP)
 
 
 
@@ -170,8 +147,8 @@ class P10RLEnv(gym.Env):
         reward = -self.distance
         
         
-        print(self.target)
-        print(self.distance)
+        #print(self.target)
+        #print(self.distance)
 
         #make reward for getting closer to can.. d = ((x2 - x1)2 + (y2 - y1)2 + (z2 - z1)2)1/2
 
@@ -200,6 +177,7 @@ class P10RLEnv(gym.Env):
         #print(reward)
                     
         if self.counter == 500:
+            print("Timeout")
             self.success = False
             self.done = True
         if self.distance < 0.05:

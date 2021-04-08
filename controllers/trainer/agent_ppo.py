@@ -161,7 +161,7 @@ class PPO_Agent:
 
         dist = self.actor(state)
         value = self.critic(state)
-        action = dist.sample()
+        action = dist.sample().to(self.actor.device)
         action = T.tanh(action)*T.tensor(self.max_action).to(self.actor.device)
         # squeeze removes the batch dimension, item makes the tensor into an integer
         #print(dist.log_prob(action), dist.log_prob(action).sum(1, keepdim=True))
