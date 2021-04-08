@@ -18,7 +18,7 @@ class Environment():
         Initilializing the environment
         """
         # Define the time step
-        self.TIME_STEP = 16
+        self.TIME_STEP = 32
         # Initiate the supervisor and the robot
         self.supervisor = Supervisor()
         self.robot = self.supervisor.getFromDef('UR3')

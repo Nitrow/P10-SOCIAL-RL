@@ -2,27 +2,33 @@
 
 import gym
 import numpy as np
-from td3_torch import Agent
+from sac_torch import Agent
 from utils import plot_learning_curve
-import P10_RL_env_v01
+import numpy as np
+
+
+from P10_RL_env_v01.envs import P10RLEnv
 
 if __name__ == '__main__':
-    env = gym.make('P10_RL-v0')
-    best_score = -np.inf
-    load_checkpoint = False
-    agent = Agent(alpha=0.001, beta=0.001, 
+	
+    env_id = 'SAC_P10'	
+    env = P10RLEnv()
+    agent = Agent(alpha=0.0003, beta=0.0003, reward_scale=2, env_id=env_id, 
                 input_dims=env.observation_space.shape, tau=0.005,
-                env=env, batch_size=100, layer1_size=400, layer2_size=300,
+                env=env, batch_size=256, layer1_size=256, layer2_size=256,
                 n_actions=env.action_space.shape[0])
-    n_games = 3000
-    filename = 'Walker2d_' + str(n_games) + '_2.png'
+    n_games = 2500
+    filename = env_id + '_'+ str(n_games) + 'games_scale' + str(agent.scale) + \
+                    '_clamp_on_sigma.png'
     figure_file = 'plots/' + filename
 
     best_score = env.reward_range[0]
     score_history = []
-
-    #agent.load_models()
-
+    load_checkpoint = False
+    if load_checkpoint:
+        agent.load_models()
+        env.render(mode='human')
+    steps = 0
     for i in range(n_games):
         observation = env.reset()
         done = False
@@ -30,8 +36,10 @@ if __name__ == '__main__':
         while not done:
             action = agent.choose_action(observation)
             observation_, reward, done, info = env.step(action)
+            steps += 1
             agent.remember(observation, action, reward, observation_, done)
-            agent.learn()
+            if not load_checkpoint:
+                agent.learn()
             score += reward
             observation = observation_
         score_history.append(score)
@@ -39,10 +47,15 @@ if __name__ == '__main__':
 
         if avg_score > best_score:
             best_score = avg_score
-            agent.save_models()
+            if not load_checkpoint:
+                agent.save_models()
 
-        print('episode ', i, 'score %.2f' % score,
-                'trailing 100 games avg %.3f' % avg_score)
+        print('episode ', i, 'score %.1f' % score,
+                'trailing 100 games avg %.1f' % avg_score, 
+                'steps %d' % steps, env_id, 
+                ' scale ', agent.scale)
+    if not load_checkpoint:
+        x = [i+1 for i in range(n_games)]
+        plot_learning_curve(x, score_history, figure_file)
 
-    x = [i+1 for i in range(n_games)]
-    plot_learning_curve(x, score_history, figure_file)
+

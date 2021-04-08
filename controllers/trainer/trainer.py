@@ -50,7 +50,7 @@ while env.supervisor.step(timestep) != -1:
 
     # Keep track of the total rewards
     total_reward += reward
-    print("Episode {} \t Step {} \t Reward {}\t Total Reward: {}\t Collision: {}".format(agent.n_games, n_episode_step, reward, int(total_reward), env.collision))
+    #print("Episode {} \t Step {} \t Reward {}\t Total Reward: {}\t Collision: {}".format(agent.n_games, n_episode_step, reward, int(total_reward), env.collision))
 
     # Increase episode's step number
     n_episode_step += 1
