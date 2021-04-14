@@ -25,14 +25,14 @@ class P10_DRL_Mark_Env(gym.Env):
     def __init__(self):
 
         self.TIME_STEP = 32
-
+        self.id = 'SAC_P10_MarkEnv_' + str(datetime.now())[:-7].replace(':','_')
         self.supervisor = Supervisor()
         self.robot_node = self.supervisor.getFromDef("UR3")
         selfconveyor_node = self.supervisor.getFromDef("conveyor")
         self.tv_node = self.supervisor.getFromDef("TV")
         self.can_node = self.supervisor.getFromDef("can")
         self.goal_node = self.supervisor.getFromDef("TARGET").getField("translation")
-        print(self.goal_node.getSFVec3f())   
+ 
         self.tcp = self.supervisor.getFromDef('TCP')
 
         self.timeout = 10000
@@ -52,7 +52,6 @@ class P10_DRL_Mark_Env(gym.Env):
         self._getMotors()
         
         self.done = True
-        self.success = False
         self.prev_dist = 0
         
         self.plot_rewards = []
@@ -62,10 +61,10 @@ class P10_DRL_Mark_Env(gym.Env):
         self.distanceDeltaReward = 100
         self.successReward = 1000
         self.rewardstr = "success {}, collision {} distance {}".format(self.successReward, self.collisionReward, self.distanceDeltaReward)
-        self.figure_file="plots/{} - Rewards {} - Timeout at {}".format(str(datetime.now())[:-7], self.rewardstr, str(self.timeout))
+        self.figure_file="plots/{} - Rewards {} - Timeout at {}".format(self.id, self.rewardstr, str(self.timeout))
         
         #print(self.goal_node.getSFVec3f())
-        self.target = [round(random.uniform(-0.3, 0.35),2), 0.85, random.uniform(0.4, 0.5)]
+        self._setTarget()
         self.oldDistance = 0
         self.distance = 0
         self.tcp_pos_world = self.tcp.getPosition()
@@ -78,11 +77,8 @@ class P10_DRL_Mark_Env(gym.Env):
         print('\n ------------------------------------ RESET ------------------------------------ \n')
         self.supervisor.simulationReset()
         self.counter = 0
-        
-        if self.success == True:
-            self.target = [random.uniform(-0.3, 0.35), 0.85, random.uniform(0.4, 0.5)]
-            self.success = False
-        self.supervisor.step(8)
+
+        self.supervisor.step(self.TIME_STEP)
         self.goal_node.setSFVec3f(self.target)
         self.total_rewards = 0    
         self.done = False    
@@ -96,6 +92,7 @@ class P10_DRL_Mark_Env(gym.Env):
         for i in range(len(self.joint_names)):
                     self.motors[i].setVelocity(float(action[i]))
         
+        self.supervisor.step(self.TIME_STEP)
         self.supervisor.step(self.TIME_STEP)
         
         rot_ur3e = np.transpose(np.array(self.robot_node.getOrientation()).reshape(3, 3))
@@ -111,20 +108,17 @@ class P10_DRL_Mark_Env(gym.Env):
 
         self.counter = self.counter + 1
               
-        if self.counter == self.timeout:
+        if self.counter >= self.timeout:
             print("Timeout")
-            self.success = False
             self.done = True
         if self.distance < 0.05:
             print("Success")
-            self.success = True
-            self.done = True
-            reward = self.successReward
+            self._setTarget()
+            reward += self.successReward
         if self._isCollision():
             print("Collision")
             self.done = True
-            self.success = False
-            reward = self.collisionReward
+            reward += self.collisionReward
         #print(self.done)
         self.total_rewards += reward
         if self.done: self.plot_learning_curve()
@@ -160,6 +154,9 @@ class P10_DRL_Mark_Env(gym.Env):
             self.sensors[i] = self.supervisor.getDevice(self.joint_names[i]+'_sensor')
             self.sensors[i].enable(self.TIME_STEP)
 
+    def _setTarget(self):
+        self.target = [random.uniform(-0.3, 0.35), 0.85, random.uniform(0.4, 0.5)]
+        self.goal_node.setSFVec3f(self.target)
 
     def render(self, mode='human'):
         pass
