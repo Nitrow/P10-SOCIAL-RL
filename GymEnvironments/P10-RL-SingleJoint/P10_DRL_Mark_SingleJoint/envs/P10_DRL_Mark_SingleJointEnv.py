@@ -22,7 +22,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
     def __init__(self):
 
         self.TIME_STEP = 32
-        self.id = 'SAC_P10_MarkEnv_SingleJoint' + str(datetime.now())[:-7].replace(':','_')
+        self.id = str(datetime.now())[:-7].replace(':','_') + '_SAC_P10_MarkEnv_SingleJoint_' 
         self.supervisor = Supervisor()
         self.robot_node = self.supervisor.getFromDef("UR3")
         selfconveyor_node = self.supervisor.getFromDef("conveyor")
@@ -53,6 +53,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.distanceReward = -0.1
         self.distanceDeltaReward = 100
         self.successReward = 1000
+        self.constPunishment = -0.01
         self.rewardstr = "success {}, collision {} distance {}".format(self.successReward, self.collisionReward, self.distanceDeltaReward)
         self.figure_file="plots/{} - Rewards {} - Timeout at {}".format(self.id, self.rewardstr, str(self.timeout))
         
@@ -63,7 +64,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.tcp_pos_world = self.tcp.getPosition()
         self.counter = 0
         self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
-        self.observation_space = spaces.Box(low=-10, high=10, shape=(3,), dtype=np.uint8)
+        self.observation_space = spaces.Box(low=-10, high=10, shape=(8,), dtype=np.uint8)
 
 
     def reset(self):
@@ -87,22 +88,22 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         
         self.supervisor.step(self.TIME_STEP)
         #self.supervisor.step(self.TIME_STEP)
-        #rot_ur3e = np.transpose(np.array(self.robot_node.getOrientation()).reshape(3, 3))
-        #pos_ur3e = np.array(self.robot_node.getPosition())
-        #print(pos_ur3e)
+        
         self.distance = np.linalg.norm(np.array(self.tcp.getPosition()) - self.target)
         distDifference = self.prevdist - self.distance
+        #print(self.distance)
         self.prevdist = self.distance
         #print("Distance: {}".format(np.linalg.norm(np.array(self.tcp.getPosition()) - self.robot_pos)))
         state = self.getState()
         # Normalize the distance by the maximum robot reach so it's between 0 and 1
-        reward = self.distanceDeltaReward * distDifference + (self.distanceReward * (self.distance / 1.45637))
-
+        reward = self.distanceDeltaReward * distDifference + (self.distanceReward * (self.distance / 1.45637)) + self.constPunishment
+        #print(self.total_rewards)
         self.counter = self.counter + 1
               
         if self.counter >= self.timeout:
             print("Timeout")
             self.done = True
+            self._setTarget()
         if self.distance < 0.1:
             print("Success")
             self._setTarget()
@@ -147,14 +148,16 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
             self.sensors[i].enable(self.TIME_STEP)
 
     def _setTarget(self):
-        # generate a point around the circle 0.75m far from the robot 
-
-        x = random.uniform(-0.5, 0.5)
-        z = random.uniform(-0.5, 0.5)
-        y = ((0.65)**2 - (x**2) - (z**2))**0.5
-        
-        self.target = list(self.robot_pos + np.array([x, y, z]))
-
+        # generate a point around the circle 0.75m far from the robot, making sure it's far away 
+        distance = 0
+        while distance <= 0.2 :
+            x = random.uniform(-0.5, 0.5)
+            z = random.uniform(-0.5, 0.5)
+            y = ((0.65)**2 - (x**2) - (z**2))**0.5
+            
+            self.target = list(self.robot_pos + np.array([x, y, z]))
+            distance = np.linalg.norm(np.array(self.tcp.getPosition()) - self.target)
+            
         self.goal_node.setSFVec3f(self.target)
 
     def render(self, mode='human'):
@@ -162,7 +165,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
 
 
     def getState(self):
-        return [self.sensors[i].getValue() for i in range(len(self.sensors))][:-1]+ [self.distance, self.target[0]]
+        return [self.sensors[i].getValue() for i in range(len(self.sensors))] + self.tcp.getPosition() + self.target 
 
 
     def plot_learning_curve(self):
