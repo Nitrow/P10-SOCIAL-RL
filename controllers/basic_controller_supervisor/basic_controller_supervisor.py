@@ -18,15 +18,15 @@ import ikpy.utils.plot as plot_utils
 # create the Robot instance.
 #robot = Robot()
 
-my_chain = Chain.from_urdf_file("../../resources/robot.urdf")
+#my_chain = Chain.from_urdf_file("../../resources/robot.urdf")
 target_orientation = [0, 0, 1]
 target_position = [ 0.1, -0.2, 0.1]
 #target_joints = my_chain.inverse_kinematics(target_position)
-target_joints = my_chain.inverse_kinematics(target_position, target_orientation, orientation_mode="X")
+#target_joints = my_chain.inverse_kinematics(target_position, target_orientation, orientation_mode="X")
 
 def set_joints(target, motors):
     
-    target_joints = my_chain.inverse_kinematics(target)
+    #target_joints = my_chain.inverse_kinematics(target)
     #print("Moving to position {}\t{}".format(target, target_joints))
     for i in range(len(motors)):
         motors[i].setPosition(target_joints[i+1])
@@ -74,19 +74,6 @@ y=0.3
 target = [ x,x,x]
 
 
-# Reset function - reset the controllers
-
-# Reward function
-
-
-"""
-" Name               Play function
-"
-" Description: Run the step function in the environment after setting up the action
-"
-"""
-def play(action):
-    pass
 
 while supervisor.step(TIME_STEP) != -1:
     counter += 1
@@ -105,13 +92,4 @@ while supervisor.step(TIME_STEP) != -1:
     # target = [ x,y,x]
     if counter > max_iter:
         counter = 0
-        
-        #supervisor.simulationReset()
-        #conveyor_node.restartController()
-        #tv_node.restartController()
-    # read sensors outputs
-    # print("Sensor outputs:\n")
-    # readings = ""
-    # for i in range(len(joint_names)):
-        # readings += '\t' + str(sensors[i].getValue())
-    # print(readings + '\n')
+

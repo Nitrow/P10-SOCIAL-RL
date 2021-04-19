@@ -23,6 +23,8 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
 
         self.TIME_STEP = 32
         self.id = str(datetime.now())[:-7].replace(':','_') + '_SAC_P10_MarkEnv_SingleJoint_' 
+        #self.id = '2021-04-15 09_44_43_SAC_P10_MarkEnv_SingleJoint_' 
+        
         self.supervisor = Supervisor()
         self.robot_node = self.supervisor.getFromDef("UR3")
         selfconveyor_node = self.supervisor.getFromDef("conveyor")
@@ -83,8 +85,11 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
 
     def step(self, action):
 
-        for i in range(len(self.joint_names)):
-                    self.motors[i].setVelocity(float(action[i]))
+        #for i in range(len(self.joint_names)):
+        #    self.motors[i].setVelocity(float(action[i]))
+            #self.motors[i].setVelocity(float(-1))
+        self.motors[1].setVelocity(-0.1)  
+        self.motors[0].setVelocity(0.1)
         
         self.supervisor.step(self.TIME_STEP)
         #self.supervisor.step(self.TIME_STEP)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.8
 import numpy as np
-from controller import Robot, Supervisor, Lidar
+from controller import Robot, Supervisor, Lidar, Camera
 import ikpy
 from ikpy.chain import Chain
 
