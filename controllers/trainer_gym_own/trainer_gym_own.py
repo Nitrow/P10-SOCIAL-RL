@@ -12,7 +12,6 @@ from P10_DRL_Mark_SingleJoint.envs import P10_DRL_Mark_SingleJointEnv
 from P10_RL_env_v01.envs import P10RLEnv
 
 
-
 if __name__ == '__main__':
 
     n_games = 5000
@@ -33,9 +32,9 @@ if __name__ == '__main__':
     score_history = []
     load_checkpoint = False
     steps = 0
-    # if load_checkpoint:
-        # agent.load_models()
-        # env.render(mode='human')
+    if load_checkpoint:
+        agent.load_models()
+        env.render(mode='human')
 
     for i in range(n_games):
         # Start a new game
