@@ -8,7 +8,7 @@ from networks import ActorNetwork, CriticNetwork, ValueNetwork
 class Agent():
     def __init__(self, alpha, beta, input_dims, tau, env,
             env_id, gamma=0.99, 
-            n_actions=2, max_size=1000000, layer1_size=256,
+            n_actions=5, max_size=1000000, layer1_size=256,
             layer2_size=256, batch_size=100, reward_scale=2):
         self.gamma = gamma
         self.tau = tau

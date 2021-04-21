@@ -72,48 +72,49 @@ class P10RLEnv(gym.Env):
         
         self.done = True
         self.success = False
-        self.goal.setSFVec3f([0, 0.85, 0.59])
+        self.goal.setSFVec3f([0, 1, 0.6])
         self.target = np.array(self.goal.getSFVec3f())
         self.oldDistance = 0
         self.distance = 0
         self.box_pos_world = self.box.getPosition()
         self.counter = 0
         self.action_space = spaces.Box(low=-1, high=1, shape=(5,), dtype=np.float32)
-        self.observation_space = spaces.Box(low=-10, high=10, shape=(7,), dtype=np.uint8)
+        self.observation_space = spaces.Box(low=-5, high=5, shape=(6,), dtype=np.float32)
 
     def reset(self):
 
-        self.supervisor.simulationReset()
+        self.simulationResetPhysics()
+        self.simulationReset()
         self.counter = 0
         self.supervisor.step(self.TIME_STEP)
         self.supervisor.step(self.TIME_STEP)
         self.supervisor.step(self.TIME_STEP)
-        print('\n ------------------------------------ RESET ------------------------------------ \n')
-        print(self.counter)
+        #print('\n ------------------------------------ RESET ------------------------------------ \n')
+        #print(self.counter)
         if self.success == True:
                 
-            self.goal.setSFVec3f([random.uniform(-0.3, 0.35), 1.25, 0])
+            self.goal.setSFVec3f([random.uniform(-0.35, 0.35), 1, 0.6])
         
             self.target = np.array(self.goal.getSFVec3f())
             
         self.done = False    
 
-        state = [self.sensors[0].getValue(), self.sensors[1].getValue(), self.sensors[2].getValue(), self.sensors[3].getValue(), self.sensors[4].getValue(), self.distance, self.target[0]]
+        state = [self.sensors[0].getValue(), self.sensors[1].getValue(), self.sensors[2].getValue(), self.sensors[3].getValue(), self.sensors[4].getValue(), self.target[0]]
 
         return np.asarray(state)
 
     def step(self, action):
         
+
+
+
+        for i in range(len(self.joint_names)-1):
+            self.motors[i].setPosition(self.sensors[i].getValue()+action[i]*(self.TIME_STEP/1000))
         
-        #if self.counter < 10:
         
-        #    for i in range(len(self.joint_names)-1):
-         #           self.motors[i].setVelocity(-0.1)
-                    
-        #if self.counter > 10:
         
-         #   for i in range(len(self.joint_names)-1):
-         #           self.motors[i].setVelocity(0.01)
+           
+        #print("Step: ", self.counter, "Velocity: ",  self.motors[1].getVelocity())
         
         self.supervisor.step(self.TIME_STEP)
            
@@ -131,7 +132,7 @@ class P10RLEnv(gym.Env):
 
         self.distance = distance.euclidean(self.box_pos_world, self.target)
 
-        state = [self.sensors[0].getValue(), self.sensors[1].getValue(), self.sensors[2].getValue(), self.sensors[3].getValue(), self.sensors[4].getValue(), self.distance, self.target[0]]
+        state = [self.sensors[0].getValue(), self.sensors[1].getValue(), self.sensors[2].getValue(), self.sensors[3].getValue(), self.sensors[4].getValue(), self.target[0]]
         
         
         if self.counter == 0:
@@ -148,7 +149,7 @@ class P10RLEnv(gym.Env):
         
         
         #print(self.target)
-        print(reward)
+        #print(reward)
 
         #make reward for getting closer to can.. d = ((x2 - x1)2 + (y2 - y1)2 + (z2 - z1)2)1/2
 
@@ -176,15 +177,17 @@ class P10RLEnv(gym.Env):
         
         #print(reward)
                     
-        if self.counter == 50:
-            print("Timeout")
+        if self.counter == 300:
+            print("TIMEOUT")
             self.success = False
             self.done = True
         if self.distance < 0.05:
+            print("SUCCESS")
             self.success = True
             self.done = True
             reward = 1000
         if self.collision1.getValue() == 1 or self.collision2.getValue() == 1 or self.collision3.getValue() == 1 or self.collision4.getValue() == 1 or self.collision5.getValue() == 1 or self.collision6.getValue() == 1:
+            print("COLLISION")
             self.done = True
             self.success = False
             reward = -300
