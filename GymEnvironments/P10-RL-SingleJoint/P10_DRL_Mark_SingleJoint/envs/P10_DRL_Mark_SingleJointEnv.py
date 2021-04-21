@@ -35,7 +35,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.tcp = self.supervisor.getFromDef('TCP')
         self.robot_pos = np.array(self.robot_node.getPosition())
         
-        self.timeout = 10000
+        self.timeout = 2000
         
         self.joint_names = ['shoulder_pan_joint', 'shoulder_lift_joint']
         
@@ -85,11 +85,11 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
 
     def step(self, action):
 
-        #for i in range(len(self.joint_names)):
-        #    self.motors[i].setVelocity(float(action[i]))
-            #self.motors[i].setVelocity(float(-1))
-        self.motors[1].setVelocity(-0.1)  
-        self.motors[0].setVelocity(0.1)
+        for i in range(len(self.joint_names)):
+            self.motors[i].setVelocity(float(action[i]))
+
+        #self.motors[1].setVelocity(-0.1)  
+        #self.motors[0].setVelocity(0.1)
         
         self.supervisor.step(self.TIME_STEP)
         #self.supervisor.step(self.TIME_STEP)
@@ -156,8 +156,8 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         # generate a point around the circle 0.75m far from the robot, making sure it's far away 
         distance = 0
         while distance <= 0.2 :
-            x = random.uniform(-0.5, 0.5)
-            z = random.uniform(-0.5, 0.5)
+            x = random.uniform(-0.4, 0.4)
+            z = random.uniform(-0.4, 0.4)
             y = ((0.65)**2 - (x**2) - (z**2))**0.5
             
             self.target = list(self.robot_pos + np.array([x, y, z]))
