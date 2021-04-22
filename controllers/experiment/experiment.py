@@ -6,14 +6,17 @@
 from controller import Robot, Camera, Supervisor, Display, MouseState, Mouse
 import numpy as np
 import cv2
-# create the Robot instance.
-#robot = Robot()
+
+# If you want the camera image
+cam = False
+
 supervisor = Supervisor()
 robot = supervisor.getFromDef("UR3")
 # get the time step of the current world.
 timestep = int(supervisor.getBasicTimeStep())
-cv2.startWindowThread()
-cv2.namedWindow("preview")
+if cam: 
+    cv2.startWindowThread()
+    cv2.namedWindow("preview")
 padding = np.array([10, 10])
 camera = Camera("camera")
 camera.enable(timestep)
@@ -25,15 +28,6 @@ height = camera.getHeight()
 mouse = Mouse()
 mouse.enable(timestep)
 mouse.enable3dPosition()
-
-# You should insert a getDevice-like function in order to get the
-# instance of a device of the robot. Something like:
-#  motor = robot.getDevice('motorname')
-#  ds = robot.getDevice('dsname')
-#  ds.enable(timestep)
-
-# Main loop:
-# - perform simulation steps until Webots is stopping the controller
 
 def drawImage(camera):
     cameraData = camera.getImage()
@@ -58,13 +52,16 @@ selection = None
 prevSelection = None
 canSelection = None
 can_height = 0.85
+selectionName = None
+prevSelectionName = None
+
 while supervisor.step(timestep) != -1:
     event = mouse.getState()
-    click = event.left
-    #print(click)
+    click = event.left # False if not clicked, true while clicked
+    # When we click on something (and release the button)
     if (click and not prevClick):
+        # Get what we clicked on
         selection = supervisor.getSelected()
-        if selection == prevSelection: doubleClick = True
         selectionName = selection.getDef()
         
         if ("CAN" in selectionName):
@@ -73,15 +70,21 @@ while supervisor.step(timestep) != -1:
         elif ("CRATE" in selectionName) and canSelection:
             new_position = selection.getField("translation").getSFVec3f()
             new_position[1] = can_height
-            if doubleClick:
-                canSelection.setSFVec3f(new_position)
-                canSelection = None
-    doubleClick = False
+
+    if doubleClick and canSelection:
+        #canSelection.setSFVec3f(new_position)
+        canSelection = None
+        doubleClick = False
+
+    if selection == prevSelection and canSelection: doubleClick = True
+    
     prevSelection = selection
+    prevSelectionName = selectionName
     prevClick = click
+    #print("prevSelection: {}\tselection: {}\tdoubleClick: {}\t".format(prevSelectionName, selectionName, doubleClick))
     if prevSelection != prevSelection and selection != selection:
         print("Current selection: {} \t Previous selection: {}".format(selection.getDef(),prevSelection.getDef()))
-    drawImage(camera)
+    if cam: drawImage(camera)
 
 
 # Enter here exit cleanup code.
