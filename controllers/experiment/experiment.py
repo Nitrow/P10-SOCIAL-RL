@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """experiment controller."""
 
 # You may need to import some classes of the controller module. Ex:
@@ -8,7 +8,7 @@ import numpy as np
 import cv2
 
 # If you want the camera image
-cam = False
+cam = True
 
 supervisor = Supervisor()
 robot = supervisor.getFromDef("UR3")
@@ -25,9 +25,29 @@ display = Display("display")
 
 width = camera.getWidth()
 height = camera.getHeight()
-mouse = Mouse()
-mouse.enable(timestep)
-mouse.enable3dPosition()
+# mouse = Mouse()
+# mouse.enable(timestep)
+# mouse.enable3dPosition()
+
+selection = None
+prevSelection = None
+canSelection = None
+can_height = 0.85
+selectionName = None
+canSelectionName = None
+
+missed = 0
+correctSort = 0
+wrongSort = 0
+
+# Get can objects
+cans = []
+root_children = supervisor.getRoot().getField("children")
+root_children_n = root_children.getCount()
+for n in range(root_children_n):
+    if "CAN" in root_children.getMFNode(n).getDef():
+        cans.append(root_children.getMFNode(n).getId())
+
 
 def drawImage(camera):
     cameraData = camera.getImage()
@@ -44,47 +64,36 @@ def drawImage(camera):
         image = cv2.rectangle(image, tuple(start_point), tuple(end_point), tuple(color), thickness)        
     cv2.imshow("preview", image)
     cv2.waitKey(timestep)
-       
-
-prevClick = False
-doubleClick = False
-selection = None
-prevSelection = None
-canSelection = None
-can_height = 0.85
-selectionName = None
-prevSelectionName = None
 
 while supervisor.step(timestep) != -1:
-    event = mouse.getState()
-    click = event.left # False if not clicked, true while clicked
-    # When we click on something (and release the button)
-    if (click and not prevClick):
-        # Get what we clicked on
-        selection = supervisor.getSelected()
-        selectionName = selection.getDef()
+
+    selection = supervisor.getSelected()
+    selectionName = selection.getDef() if selection else ""
+    selectionColor = selectionName.split('_')[0]
+
+    if "CAN" in selectionName:
+        canSelection = selection
+        canColor = selectionColor
         
-        if ("CAN" in selectionName):
-            canSelection = selection.getField("translation")
-            
-        elif ("CRATE" in selectionName) and canSelection:
-            new_position = selection.getField("translation").getSFVec3f()
-            new_position[1] = can_height
-
-    if doubleClick and canSelection:
-        #canSelection.setSFVec3f(new_position)
+    elif ("CRATE" in selectionName) and canSelection:
+        new_position = selection.getField("translation").getSFVec3f()
+        new_position[1] = can_height
+        canSelection.getField("translation").setSFVec3f(new_position)
+        if selectionColor == canColor:
+            correctSort += 1
+            cans.remove(canSelection.getId())
+        else: wrongSort += 1 
         canSelection = None
-        doubleClick = False
 
-    if selection == prevSelection and canSelection: doubleClick = True
-    
+    # Check for missed ones:
+    #print(cans)
+    missCount = 0
+    for canID in cans:  
+        canX, _, _ = supervisor.getFromId(canID).getField("translation").getSFVec3f()
+        if canX < -1.5:
+            missCount += 1
+
+    missed = missCount
     prevSelection = selection
-    prevSelectionName = selectionName
-    prevClick = click
-    #print("prevSelection: {}\tselection: {}\tdoubleClick: {}\t".format(prevSelectionName, selectionName, doubleClick))
-    if prevSelection != prevSelection and selection != selection:
-        print("Current selection: {} \t Previous selection: {}".format(selection.getDef(),prevSelection.getDef()))
+    print("Correct: {}\t Incorrect: {}\t Missed: {}\t Total: {}".format(correctSort, wrongSort, missed, correctSort-wrongSort-missed))
     if cam: drawImage(camera)
-
-
-# Enter here exit cleanup code.
