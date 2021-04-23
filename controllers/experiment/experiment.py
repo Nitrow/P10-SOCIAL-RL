@@ -12,6 +12,7 @@ cam = True
 
 supervisor = Supervisor()
 robot = supervisor.getFromDef("UR3")
+
 # get the time step of the current world.
 timestep = int(supervisor.getBasicTimeStep())
 if cam: 
@@ -21,8 +22,11 @@ padding = np.array([10, 10])
 camera = Camera("camera")
 camera.enable(timestep)
 camera.recognitionEnable(timestep)
-display = Display("display")
-
+display = supervisor.getDevice("display_robot")
+display_score = supervisor.getDevice("display_score")
+display_score.setOpacity(1)
+#display_score.drawLine(0, 100, 10, 50)  # Test if drawing a line works (yes, it does)
+#display_score.drawText("Hello", 0, 3)
 width = camera.getWidth()
 height = camera.getHeight()
 # mouse = Mouse()
@@ -61,7 +65,11 @@ def drawImage(camera):
         thickness = 2
         #color = [0, 255, 0]
         color = ( int (color [ 0 ]), int (color [ 1 ]), int (color [ 2 ]))
-        image = cv2.rectangle(image, tuple(start_point), tuple(end_point), tuple(color), thickness)        
+        image = cv2.rectangle(image, tuple(start_point), tuple(end_point), tuple(color), thickness)
+    
+    display.drawLine(0, 100, 10, 50)
+    #imageRef = display.imageNew(cameraData, Display.ARGB, camera.getHeight(), camera.getWidth())
+    #display.imagePaste(imageRef, 1024, 768)        
     cv2.imshow("preview", image)
     cv2.waitKey(timestep)
 
@@ -86,7 +94,6 @@ while supervisor.step(timestep) != -1:
         canSelection = None
 
     # Check for missed ones:
-    #print(cans)
     missCount = 0
     for canID in cans:  
         canX, _, _ = supervisor.getFromId(canID).getField("translation").getSFVec3f()
@@ -95,5 +102,16 @@ while supervisor.step(timestep) != -1:
 
     missed = missCount
     prevSelection = selection
-    print("Correct: {}\t Incorrect: {}\t Missed: {}\t Total: {}".format(correctSort, wrongSort, missed, correctSort-wrongSort-missed))
+    #print("Correct: {}\t Incorrect: {}\t Missed: {}\t Total: {}".format(correctSort, wrongSort, missed, correctSort-wrongSort-missed))
+    
+    score_text = "Total score: " + str(correctSort-wrongSort-missed)
+    data = camera.getImage()
+    if data:
+        ir = display_score.imageNew(data, Display.RGB, camera.getWidth(), camera.getHeight())
+        display_score.imagePaste(ir, 0, 0, False)
+        display_score.imageDelete(ir)
+    #display_score.setColor(0x000000)
+    #display_score.setColor(0xFFFFFF)
+    #display_score.fillRectangle(0, 0, display_score.getWidth(), display_score.getHeight())
+    #display_score.drawText(score_text, 0, 3)
     if cam: drawImage(camera)
