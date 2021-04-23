@@ -22,9 +22,9 @@ padding = np.array([10, 10])
 camera = Camera("camera")
 camera.enable(timestep)
 camera.recognitionEnable(timestep)
-display = supervisor.getDevice("display_robot")
+#display = supervisor.getDevice("display_robot")
 display_score = supervisor.getDevice("display_score")
-display_score.setOpacity(1)
+display_score.setOpacity(0)
 #display_score.drawLine(0, 100, 10, 50)  # Test if drawing a line works (yes, it does)
 #display_score.drawText("Hello", 0, 3)
 width = camera.getWidth()
@@ -67,7 +67,10 @@ def drawImage(camera):
         color = ( int (color [ 0 ]), int (color [ 1 ]), int (color [ 2 ]))
         image = cv2.rectangle(image, tuple(start_point), tuple(end_point), tuple(color), thickness)
     
-    display.drawLine(0, 100, 10, 50)
+    if cameraData:
+        ir = display_score.imageNew(cameraData, Display.BGRA, camera.getWidth(), camera.getHeight())
+        display_score.imagePaste(ir, 0, 0, False)
+        display_score.imageDelete(ir)
     #imageRef = display.imageNew(cameraData, Display.ARGB, camera.getHeight(), camera.getWidth())
     #display.imagePaste(imageRef, 1024, 768)        
     cv2.imshow("preview", image)
@@ -104,14 +107,4 @@ while supervisor.step(timestep) != -1:
     prevSelection = selection
     #print("Correct: {}\t Incorrect: {}\t Missed: {}\t Total: {}".format(correctSort, wrongSort, missed, correctSort-wrongSort-missed))
     
-    score_text = "Total score: " + str(correctSort-wrongSort-missed)
-    data = camera.getImage()
-    if data:
-        ir = display_score.imageNew(data, Display.RGB, camera.getWidth(), camera.getHeight())
-        display_score.imagePaste(ir, 0, 0, False)
-        display_score.imageDelete(ir)
-    #display_score.setColor(0x000000)
-    #display_score.setColor(0xFFFFFF)
-    #display_score.fillRectangle(0, 0, display_score.getWidth(), display_score.getHeight())
-    #display_score.drawText(score_text, 0, 3)
     if cam: drawImage(camera)
