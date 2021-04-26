@@ -21,13 +21,14 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
 
     def __init__(self):
 
-        self.TIME_STEP = 32
+
         self.id = str(datetime.now())[:-7].replace(':','_') + '_SAC_P10_MarkEnv_SingleJoint_' 
         #self.id = '2021-04-15 09_44_43_SAC_P10_MarkEnv_SingleJoint_' 
         
         self.supervisor = Supervisor()
+        self.TIME_STEP = int(self.supervisor.getBasicTimeStep())
         self.robot_node = self.supervisor.getFromDef("UR3")
-        selfconveyor_node = self.supervisor.getFromDef("conveyor")
+        self.conveyor_node = self.supervisor.getFromDef("conveyor")
         self.tv_node = self.supervisor.getFromDef("TV")
         self.can_node = self.supervisor.getFromDef("can")
         self.goal_node = self.supervisor.getFromDef("TARGET").getField("translation")
@@ -41,10 +42,12 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         
         self.motors = [0] * len(self.joint_names)
         self.sensors = [0] * len(self.joint_names)
-        self.touch_sensors = [0] * (len(self.joint_names)+1)
+        
+        self.touch_sensors = [0] * 7#(len(self.joint_names)+1)
 
-        self._getSensors()
         self._getMotors()
+        self._getSensors()
+        
         
         self.done = True
         self.prev_dist = 0
@@ -65,8 +68,10 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.distance = 0
         self.tcp_pos_world = self.tcp.getPosition()
         self.counter = 0
+
+        self.actionScale = 3
         self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
-        self.observation_space = spaces.Box(low=-10, high=10, shape=(8,), dtype=np.uint8)
+        self.observation_space = spaces.Box(low=-10, high=10, shape=(6,), dtype=np.float32)
 
 
     def reset(self):
@@ -86,11 +91,20 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
     def step(self, action):
 
         for i in range(len(self.joint_names)):
-            self.motors[i].setVelocity(float(action[i]))
-
-        #self.motors[1].setVelocity(-0.1)  
-        #self.motors[0].setVelocity(0.1)
+            pos = self.sensors[i].getValue()
+            d_pos = self.actionScale * float(action[i]) * self.TIME_STEP / 1000
+            # print("Current position {}\t Action: {}\t Total: {}\n".format(pos, d_pos, pos+d_pos))
+            if pos + d_pos > 6.2831:
+                new_pos = 6.2831
+            elif pos + d_pos < -6.2831:
+                new_pos = -6.2831
+            else:
+                new_pos = pos + d_pos
+            self.motors[i].setPosition(new_pos)
         
+
+          
+
         self.supervisor.step(self.TIME_STEP)
         #self.supervisor.step(self.TIME_STEP)
         
@@ -156,8 +170,8 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         # generate a point around the circle 0.75m far from the robot, making sure it's far away 
         distance = 0
         while distance <= 0.2 :
-            x = random.uniform(-0.4, 0.4)
-            z = random.uniform(-0.4, 0.4)
+            x = random.choice([random.uniform(-0.4, -0.2), random.uniform(0.2, 0.4)])
+            z = random.choice([random.uniform(-0.4, -0.2), random.uniform(0.2, 0.4)])
             y = ((0.65)**2 - (x**2) - (z**2))**0.5
             
             self.target = list(self.robot_pos + np.array([x, y, z]))
@@ -170,7 +184,8 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
 
 
     def getState(self):
-        return [self.sensors[i].getValue() for i in range(len(self.sensors))] + self.tcp.getPosition() + self.target 
+        #return [self.sensors[i].getValue() for i in range(len(self.sensors))] + self.tcp.getPosition() + self.target 
+        return self.tcp.getPosition() + self.target 
 
 
     def plot_learning_curve(self):
