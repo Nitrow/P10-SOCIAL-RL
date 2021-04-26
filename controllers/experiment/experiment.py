@@ -68,7 +68,11 @@ def drawImage(camera):
         image = cv2.rectangle(image, tuple(start_point), tuple(end_point), tuple(color), thickness)
     
     if cameraData:
-        ir = display_score.imageNew(cameraData, Display.BGRA, camera.getWidth(), camera.getHeight())
+        # Displaying the camera image directly
+        #ir = display_score.imageNew(cameraData, Display.BGRA, camera.getWidth(), camera.getHeight())
+        # Displaying the processed image
+        cv2.imwrite('tmp.jpg', image)
+        ir = display_score.imageLoad('tmp.jpg')
         display_score.imagePaste(ir, 0, 0, False)
         display_score.imageDelete(ir)
     #imageRef = display.imageNew(cameraData, Display.ARGB, camera.getHeight(), camera.getWidth())
