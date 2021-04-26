@@ -6,6 +6,10 @@
 from controller import Robot, Camera, Supervisor, Display, MouseState, Mouse
 import numpy as np
 import cv2
+import random
+
+random.seed(1)
+
 
 # If you want the camera image
 cam = True
@@ -15,9 +19,9 @@ robot = supervisor.getFromDef("UR3")
 
 # get the time step of the current world.
 timestep = int(supervisor.getBasicTimeStep())
-if cam: 
-    cv2.startWindowThread()
-    cv2.namedWindow("preview")
+#if cam: 
+#    cv2.startWindowThread()
+#    cv2.namedWindow("preview")
 padding = np.array([10, 10])
 camera = Camera("camera")
 camera.enable(timestep)
@@ -45,13 +49,23 @@ correctSort = 0
 wrongSort = 0
 
 # Get can objects
-cans = []
+total_cans = []
 root_children = supervisor.getRoot().getField("children")
 root_children_n = root_children.getCount()
 for n in range(root_children_n):
     if "CAN" in root_children.getMFNode(n).getDef():
-        cans.append(root_children.getMFNode(n).getId())
+        total_cans.append(root_children.getMFNode(n).getId())
 
+def onConveyorRanked(cans):
+    """
+    Returns a ranked list of the cans that are on the conveyor belt
+    """
+    cansOnConveyor = cans[:]
+    for canID in cans:  
+        canX, canY, _ = supervisor.getFromId(canID).getField("translation").getSFVec3f()
+        if canY <= 0.8 or canID == supervisor.getSelected().getId():
+            cansOnConveyor.remove(canID)
+    return cansOnConveyor
 
 def drawImage(camera):
     cameraData = camera.getImage()
@@ -77,8 +91,8 @@ def drawImage(camera):
         display_score.imageDelete(ir)
     #imageRef = display.imageNew(cameraData, Display.ARGB, camera.getHeight(), camera.getWidth())
     #display.imagePaste(imageRef, 1024, 768)        
-    cv2.imshow("preview", image)
-    cv2.waitKey(timestep)
+    #cv2.imshow("preview", image)
+    #cv2.waitKey(timestep)
 
 while supervisor.step(timestep) != -1:
 
@@ -96,13 +110,13 @@ while supervisor.step(timestep) != -1:
         canSelection.getField("translation").setSFVec3f(new_position)
         if selectionColor == canColor:
             correctSort += 1
-            cans.remove(canSelection.getId())
+            total_cans.remove(canSelection.getId())
         else: wrongSort += 1 
         canSelection = None
 
     # Check for missed ones:
     missCount = 0
-    for canID in cans:  
+    for canID in total_cans:  
         canX, _, _ = supervisor.getFromId(canID).getField("translation").getSFVec3f()
         if canX < -1.5:
             missCount += 1
@@ -110,5 +124,5 @@ while supervisor.step(timestep) != -1:
     missed = missCount
     prevSelection = selection
     #print("Correct: {}\t Incorrect: {}\t Missed: {}\t Total: {}".format(correctSort, wrongSort, missed, correctSort-wrongSort-missed))
-    
+    print(onConveyorRanked(total_cans))
     if cam: drawImage(camera)
