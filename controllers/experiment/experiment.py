@@ -45,26 +45,15 @@ camera = Camera("camera")
 camera.enable(timestep)
 camera.recognitionEnable(timestep)
 #display = supervisor.getDevice("display_robot")
-display_explanation = supervisor.getDevice("display_explanation")
-display_explanation.setOpacity(0)
-
 display_score = supervisor.getDevice("display_score")
-display_score.setOpacity(1)
-display_score.setAlpha(0)
-display_score.fillRectangle(0, 0, display_score.getWidth(), display_score.getHeight())
-display_score.setAlpha(1)
-display_score.setColor(0x000000)
-display_score.setFont("Lucida Console", 64, True)
-display_score.drawText("Scoring display", 0, 0)
-display_score.fillRectangle(0, 100, 800, 10)
-#display_explanation.drawLine(0, 100, 10, 50)  # Test if drawing a line works (yes, it does)
-#display_explanation.drawText("Hello", 0, 3)
+display_score.setOpacity(0)
+#display_score.drawLine(0, 100, 10, 50)  # Test if drawing a line works (yes, it does)
+#display_score.drawText("Hello", 0, 3)
 width = camera.getWidth()
 height = camera.getHeight()
 # mouse = Mouse()
 # mouse.enable(timestep)
 # mouse.enable3dPosition()
-colors = {"yellow" : [0.309804, 0.913725, 1.0], "red" : [0.0, 0.0, 1.0], "green" : [0.0, 1.0, 0.0]}
 
 selection = None
 prevSelection = None
@@ -135,46 +124,22 @@ def position_Checker():
 root_children = supervisor.getRoot().getField("children")
 
 
-def displayScore(display, correct, incorrect, missed):
-    h = int(display.getHeight() / 5)
-    x = h
-
-    display.setAlpha(0)
-    display.fillRectangle(0, h, display.getWidth(), display.getHeight())
-    display.setAlpha(1)
-    display.setFont("Lucida Console", 64, True)
-    display.drawText("Correct:   {}".format(correct), 10, x)
-    x += h
-    display.drawText("Incorrect: {}".format(incorrect), 10, x)
-    x += h
-    display.drawText("Missed:    {}".format(missed), 10, x)
-    x += h
-    #display.setFont("Lucida Console", 48, True)
-    display.drawText("Total:     {}".format(correct-incorrect-missed), 10, x)
-
-
-def countCans(missed):
-    total_cans = {}
+def countCans():
+    total_cans = []
     toRemove = []
     root_children_n = root_children.getCount()
     for n in range(root_children_n):
         if "CAN" in root_children.getMFNode(n).getDef():
             can = root_children.getMFNode(n)
             x, y, z = can.getField("translation").getSFVec3f()
-            if not x < -1.2:# and y >= 0.8:
+            if not x < -1.2 and y >= 0.8:
             #root_children.getMFNode(n).remove()
-                if y >= 0.8:
-                    if random.random() <= 0.6:
-                        total_cans[can.getId()] = can.getDef().split('_')[0].lower()
-                    else:
-                        total_cans[can.getId()] = random.choice(["yellow", "red", "green"])
-                    #total_cans.append(can.getId())
+                total_cans.append(can.getId())
             else:
-                missed += 1
                 toRemove.append(can)
     for item in toRemove:
         item.remove()
-    return total_cans, missed
+    return total_cans
 
 
 def onConveyorRanked(cans):
@@ -189,26 +154,18 @@ def onConveyorRanked(cans):
     return cansOnConveyor
 
 
-def drawImage(camera, colors):
+def drawImage(camera):
     """
     Displays the image either in a new window, or on the Display
     """
     cameraData = camera.getImage()
     image = np.frombuffer(cameraData, np.uint8).reshape((camera.getHeight(), camera.getWidth(), 4))
     for obj in camera.getRecognitionObjects():
-        # Get the id of the object
-        obj_id = obj.get_id()
-        # Assign color with 40% error rate
-        if random.random() <= 0.6:
-            color = np.rint(np.array(obj.get_colors())*255)
-            obj_color = list(colors.keys())[list(colors.values()).index(obj.get_colors())]
-        else:
-            color = np.rint(np.array(random.choice(list(colors.values())))*255)
-            obj_color = random.choice(list(colors.values()))
         size = np.array(obj.get_size_on_image()) + padding
         start_point = np.array(obj.get_position_on_image()) - (size / 2) 
         start_point =  np.array([int(n) for n in start_point])
         end_point = start_point + size
+        color = np.rint(np.array(obj.get_colors())*255)
         thickness = 2
         #color = [0, 255, 0]
         color = ( int (color [ 0 ]), int (color [ 1 ]), int (color [ 2 ]))
@@ -216,12 +173,12 @@ def drawImage(camera, colors):
     
     if cameraData:
         # Displaying the camera image directly
-        #ir = display_explanation.imageNew(cameraData, Display.BGRA, camera.getWidth(), camera.getHeight())
+        #ir = display_score.imageNew(cameraData, Display.BGRA, camera.getWidth(), camera.getHeight())
         # Displaying the processed image
         cv2.imwrite('tmp.jpg', image)
-        ir = display_explanation.imageLoad('tmp.jpg')
-        display_explanation.imagePaste(ir, 0, 0, False)
-        display_explanation.imageDelete(ir)
+        ir = display_score.imageLoad('tmp.jpg')
+        display_score.imagePaste(ir, 0, 0, False)
+        display_score.imageDelete(ir)
     #imageRef = display.imageNew(cameraData, Display.ARGB, camera.getHeight(), camera.getWidth())
     #display.imagePaste(imageRef, 1024, 768)        
     #cv2.imshow("preview", image)
@@ -241,14 +198,15 @@ def generateCans():
     root_children.importMFNode(-1, can)
 
 
+
+
 while supervisor.step(timestep) != -1:
-    total_cans, missed = countCans(missed)
+    total_cans = countCans()
     #print(total_cans)
     selection = supervisor.getSelected()
     selectionName = selection.getDef() if selection else ""
     selectionColor = selectionName.split('_')[0]
-    for keys, vals in total_cans.items():
-        print (keys, vals)
+
     if "CAN" in selectionName:
         canSelection = selection
         canColor = selectionColor
@@ -259,21 +217,121 @@ while supervisor.step(timestep) != -1:
         canSelection.getField("translation").setSFVec3f(new_position)
         if selectionColor == canColor:
             correctSort += 1
-            del total_cans[canSelection.getId()]
+            #total_cans.remove(canSelection.getId())
         else: wrongSort += 1 
         canSelection = None
 
-    # # Check for missed ones:
-    # for canID in total_cans:  
-    #     canX, _, _ = supervisor.getFromId(canID).getField("translation").getSFVec3f()
-    #     if canX < -1.5:
-    #         missed += 1
+    # Check for missed ones:
+    for canID in total_cans:  
+        canX, _, _ = supervisor.getFromId(canID).getField("translation").getSFVec3f()
+        if canX < -1.5:
+            missed += 1
 
     prevSelection = selection
-    displayScore(display_score, correctSort, wrongSort, missed)
-    if random.randrange(0,100) % 50 == 0:
+    if random.randrange(0,100) % 20 == 0:
         generateCans()
         #pass
     #print("Correct: {}\t Incorrect: {}\t Missed: {}\t Total: {}".format(correctSort, wrongSort, missed, correctSort-wrongSort-missed))
     #print(onConveyorRanked(total_cans))
-    if cam: drawImage(camera, colors)
+    if cam: drawImage(camera)
+    
+    
+    if prepare_grasp == True:
+        
+        
+        index = 6 #####SETTING THE CAN, CAN BE REPALCED BY AN ACTUAL ID#####
+        
+        goal = supervisor.getFromDef("GREEN_CAN1").getField("translation")
+        target = np.array(goal.getSFVec3f())
+                 
+        target_position = [target[2]-0.19, 0.167, target[1]-0.52]
+    
+        orientation_axis = "Y"
+        target_orientation = [0, 0, -1]
+        
+        joints = my_chain.inverse_kinematics(target_position, target_orientation=target_orientation, orientation_mode=orientation_axis)
+        
+        for i in range(len(joint_names)):
+            motors[i].setPosition(joints[i+1])    
+        
+    
+        prepare_grasp = False
+        
+ 
+            
+    if  prepare_grasp == False and position_Checker()==True and distance_sensor.getValue() < 800 and target[0] < 0.19 :
+         
+        #target_position = [target[2]-0.2, 0.167, target[1]-0.58]
+         
+        #orientation_axis = "Y"
+        #target_orientation = [0, 0, -1]
+    
+    
+        #joints = my_chain.inverse_kinematics(target_position, target_orientation=target_orientation, orientation_mode=orientation_axis)
+       
+        for i in range(len(joint_names)):
+            motors[1].setPosition(0.15)    
+
+
+        
+        lower_grasp = False        
+        prepare_grap2 = True        
+ 
+    
+    if  prepare_grap2 == True and distance_sensor.getValue() < 200:
+        
+        
+        
+        motors[1].setPosition(sensors[1].getValue())
+        fingers[0].setPosition(0)
+        fingers[1].setPosition(0)
+        
+        
+        
+        go_to_bucket = True        
+        prepare_grap2 = False
+
+        
+    if  go_to_bucket == True and go_to_bucket2 == False and sensor_fingers[0].getValue() < 0.005 or sensor_fingers[1].getValue() < 0.005:
+        
+
+        for i in range(len(joint_names)):
+                motors[1].setPosition(-0.5)
+                
+        if sensors[1].getValue()-0.1 < -0.5 < sensors[1].getValue()+0.1:
+                go_to_bucket2 = True    
+                go_to_bucket = False
+               
+               
+    if go_to_bucket2 == True:
+         
+         if index > 5:
+             for i in range(len(joint_names)):
+                     motors[0].setPosition(1.5)
+                     if sensors[0].getValue()-0.01 < 1.5 < sensors[0].getValue()+0.01:
+                         drop = True
+                         go_to_bucket2 = False
+
+         if index < 3:
+             for i in range(len(joint_names)):
+                     motors[0].setPosition(-1.8)
+                     if sensors[0].getValue()-0.01 < -1.8 < sensors[0].getValue()+0.01:
+                         drop = True
+                         go_to_bucket2 = False
+
+         
+    if drop == True:
+        
+       fingers[0].setPosition(0.04)
+       fingers[1].setPosition(0.04)
+       
+       if sensor_fingers[0].getValue()-0.005 < 0.03 < sensor_fingers[0].getValue()+0.005: 
+           prepare_grasp = True
+           drop = False
+           
+           
+    goal = supervisor.getFromDef("GREEN_CAN1").getField("translation")
+    target = np.array(goal.getSFVec3f())          
+    
+    
+  
