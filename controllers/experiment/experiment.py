@@ -10,6 +10,8 @@ import random
 
 random.seed(1)
 
+y = 0.88
+x = 3.17
 
 # If you want the camera image
 cam = True
@@ -44,6 +46,7 @@ can_height = 0.85
 selectionName = None
 canSelectionName = None
 
+can_num = 1
 missed = 0
 correctSort = 0
 wrongSort = 0
@@ -56,6 +59,7 @@ for n in range(root_children_n):
     if "CAN" in root_children.getMFNode(n).getDef():
         total_cans.append(root_children.getMFNode(n).getId())
 
+
 def onConveyorRanked(cans):
     """
     Returns a ranked list of the cans that are on the conveyor belt
@@ -67,13 +71,17 @@ def onConveyorRanked(cans):
             cansOnConveyor.remove(canID)
     return cansOnConveyor
 
+
 def drawImage(camera):
+    """
+    Displays the image either in a new window, or on the Display
+    """
     cameraData = camera.getImage()
     image = np.frombuffer(cameraData, np.uint8).reshape((camera.getHeight(), camera.getWidth(), 4))
     for object in camera.getRecognitionObjects():
         size = np.array(object.get_size_on_image()) + padding
         start_point = np.array(object.get_position_on_image()) - (size / 2) 
-        start_point =  np.array([int(x) for x in start_point])
+        start_point =  np.array([int(n) for n in start_point])
         end_point = start_point + size
         color = np.rint(np.array(object.get_colors())*255)
         thickness = 2
@@ -93,6 +101,23 @@ def drawImage(camera):
     #display.imagePaste(imageRef, 1024, 768)        
     #cv2.imshow("preview", image)
     #cv2.waitKey(timestep)
+
+
+def generateCans():
+    # 0.455 < z < 0.555  # Width of the conveyor belt
+    # y = 0.88  # Height of the conveyor belt
+    x += random.uniform(0.06, 0.1), 
+    z = random.uniform(0.455,0.555)
+    can_
+    can_colors = ["green", "yellow", "red"]
+    can = "resources/" + random.choice(can_colors) + "_can.wbo"
+    root_children.importMFNode(-1, can)
+    supervisor.getFromDef
+    can_num += 1
+    return can
+
+
+
 
 while supervisor.step(timestep) != -1:
 
@@ -123,6 +148,7 @@ while supervisor.step(timestep) != -1:
 
     missed = missCount
     prevSelection = selection
+    generateCans()
     #print("Correct: {}\t Incorrect: {}\t Missed: {}\t Total: {}".format(correctSort, wrongSort, missed, correctSort-wrongSort-missed))
-    print(onConveyorRanked(total_cans))
+    #print(onConveyorRanked(total_cans))
     if cam: drawImage(camera)
