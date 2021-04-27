@@ -9,28 +9,33 @@ class Agent():
     def __init__(self, alpha, beta, input_dims, tau, env,
             env_id, gamma=0.99, 
             n_actions=2, max_size=1000000, layer1_size=256,
-            layer2_size=256, batch_size=100, reward_scale=2):
+            layer2_size=256, batch_size=100, reward_scale=2, chkpt_dir='tmp/sac'):
         self.gamma = gamma
         self.tau = tau
         self.memory = ReplayBuffer(max_size, input_dims, n_actions)
         self.batch_size = batch_size
         self.n_actions = n_actions
-
+        self.chkpt_dir = chkpt_dir
         self.actor = ActorNetwork(alpha, input_dims, layer1_size,
                                   layer2_size, n_actions=n_actions,
                                   name=env_id+'_actor', 
-                                  max_action=env.action_space.high)
+                                  max_action=env.action_space.high,
+                                  chkpt_dir=self.chkpt_dir)
         self.critic_1 = CriticNetwork(beta, input_dims, layer1_size,
                                       layer2_size, n_actions=n_actions,
-                                      name=env_id+'_critic_1')
+                                      name=env_id+'_critic_1',
+                                    chkpt_dir=self.chkpt_dir)
         self.critic_2 = CriticNetwork(beta, input_dims, layer1_size,
                                       layer2_size, n_actions=n_actions,
-                                      name=env_id+'_critic_2')
+                                      name=env_id+'_critic_2',
+                                  chkpt_dir=self.chkpt_dir)
        
         self.value = ValueNetwork(beta, input_dims, layer1_size,
-                                      layer2_size, name=env_id+'_value')
+                                      layer2_size, name=env_id+'_value',
+                                  chkpt_dir=self.chkpt_dir)
         self.target_value = ValueNetwork(beta, input_dims, layer1_size,
-                                         layer2_size, name=env_id+'_target_value')
+                                         layer2_size, name=env_id+'_target_value',
+                                  chkpt_dir=self.chkpt_dir)
 
         self.scale = reward_scale
         self.update_network_parameters(tau=1)

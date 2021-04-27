@@ -11,10 +11,9 @@ from P10_DRL_Mark.envs import P10_DRL_Mark_Env
 from P10_DRL_Mark_SingleJoint.envs import P10_DRL_Mark_SingleJointEnv
 from P10_RL_env_v01.envs import P10RLEnv
 
-
 if __name__ == '__main__':
 
-    n_games = 5000
+    n_games = 2500
     dt = 32
     env = P10_DRL_Mark_SingleJointEnv()
     #env = P10_DRL_Mark_Env()
@@ -26,7 +25,7 @@ if __name__ == '__main__':
     agent = Agent(alpha=0.0003, beta=0.0003, reward_scale=2, env_id=env.id, 
                 input_dims=env.observation_space.shape, tau=0.005,
                 env=env, batch_size=256, layer1_size=256, layer2_size=256,
-                n_actions=env.action_space.shape[0])
+                n_actions=env.action_space.shape[0], chkpt_dir=env.path)
                 
     best_score = env.reward_range[0]
     score_history = []

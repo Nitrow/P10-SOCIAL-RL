@@ -10,6 +10,7 @@ import random
 import math
 import matplotlib.pyplot as plt
 from datetime import datetime
+import os
 #import ikpy
 #from ikpy.chain import Chain
 
@@ -21,10 +22,11 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
 
     def __init__(self):
 
-
-        self.id = str(datetime.now())[:-7].replace(':','_') + '_SAC_P10_MarkEnv_SingleJoint_' 
+        random.seed(1)
+        self.id = "SAC - " + str(datetime.now())[:-7].replace(':','_') + '_P10_MarkEnv_SingleJoint' 
         #self.id = '2021-04-15 09_44_43_SAC_P10_MarkEnv_SingleJoint_' 
-        
+        self.path = "data/" + self.id + "/"
+        os.makedirs(self.path, exist_ok=True)
         self.supervisor = Supervisor()
         self.TIME_STEP = int(self.supervisor.getBasicTimeStep())
         self.robot_node = self.supervisor.getFromDef("UR3")
@@ -54,13 +56,16 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         
         self.plot_rewards = []
         self.total_rewards = 0
+
+        self.epOutcome = ""
+
         self.collisionReward = -300 
         self.distanceReward = -0.1
         self.distanceDeltaReward = 100
         self.successReward = 1000
         self.constPunishment = -0.01
         self.rewardstr = "success {}, collision {} distance {}".format(self.successReward, self.collisionReward, self.distanceDeltaReward)
-        self.figure_file="plots/{} - Rewards {} - Timeout at {}".format(self.id, self.rewardstr, str(self.timeout))
+        self.figure_file = self.path + "{} - Rewards {} - Timeout at {}".format(self.id, self.rewardstr, str(self.timeout))
         
         #print(self.goal_node.getSFVec3f())
         self._setTarget()
@@ -72,7 +77,10 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.actionScale = 3
         self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
         self.observation_space = spaces.Box(low=-10, high=10, shape=(6,), dtype=np.float32)
-
+        
+        self.documentation = "Action space: joint 1 and 2, State space: tcp pos (xyz), target pos (xyz) "
+        self.documentation += "{} - Rewards {} - Timeout at {}\n".format(self.id, self.rewardstr, str(self.timeout))
+        self.saveEpisode(self.documentation)
 
     def reset(self):
         print('\n ------------------------------------ RESET ------------------------------------ \n')
@@ -101,9 +109,6 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
             else:
                 new_pos = pos + d_pos
             self.motors[i].setPosition(new_pos)
-        
-
-          
 
         self.supervisor.step(self.TIME_STEP)
         #self.supervisor.step(self.TIME_STEP)
@@ -120,20 +125,25 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.counter = self.counter + 1
               
         if self.counter >= self.timeout:
+            self.epOutcome = "Timeout"
             print("Timeout")
             self.done = True
             self._setTarget()
         if self.distance < 0.1:
+            self.epOutcome = "Success"
             print("Success")
             self._setTarget()
             reward += self.successReward
         if self._isCollision():
+            self.epOutcome = "Collision"
             print("Collision")
             self.done = True
             reward += self.collisionReward
         #print(self.done)
         self.total_rewards += reward
-        if self.done: self.plot_learning_curve()
+        if self.done:
+            self.saveEpisode(str(round(self.total_rewards)) + ";")
+            self.plot_learning_curve()
         #print(reward)
         return [state, float(reward), self.done, {}]
 
@@ -181,6 +191,11 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
 
     def render(self, mode='human'):
         pass
+
+
+    def saveEpisode(self, reward):
+        with open(os.path.join(self.path, "documentation.txt"), 'a') as f:
+            f.write(reward)
 
 
     def getState(self):
