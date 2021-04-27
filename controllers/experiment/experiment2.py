@@ -48,7 +48,7 @@ for i in range(len(finger_names)):
 distance_sensor = supervisor.getDevice("distance_sensor1") 
 distance_sensor.enable(timestep)    
     
-my_chain = ikpy.chain.Chain.from_urdf_file("/home/asger/P10-XRL/resources/robot2.urdf")
+my_chain = ikpy.chain.Chain.from_urdf_file("/resources/robot2.urdf")
 
 
 prevClick = False
