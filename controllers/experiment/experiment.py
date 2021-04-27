@@ -31,6 +31,9 @@ def moveFingers(fingers, mode="open"):
 
 
 def position_Checker():
+    """
+    Returns true if all joints are 0.02 rad within the desired angles
+    """
     return all([abs(sensors[i].getValue() - joints[i+1]) < 0.02 for i in range(len(sensors))])
 
 random.seed(1)
@@ -130,7 +133,7 @@ prepare_grap2 = False
 go_to_bucket2 = False
 drop = False
 
-moveFingers(fingers, mode = "open") 
+moveFingers(fingers) 
 
 
 root_children = supervisor.getRoot().getField("children")
