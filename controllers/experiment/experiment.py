@@ -20,9 +20,18 @@ from ikpy.chain import Chain
 
 #fileChanger("translation 4.05", "translation 3.1")
 
+def moveFingers(fingers, mode="open"):
+
+    if mode == "open":
+        fingers[0].setPosition(0.04)
+        fingers[1].setPosition(0.04)
+    elif mode == "close":
+        fingers[0].setPosition(0)
+        fingers[1].setPosition(0)
 
 
-
+def position_Checker():
+    return all([abs(sensors[i].getValue() - joints[i+1]) < 0.02 for i in range(len(sensors))])
 
 random.seed(1)
 
@@ -45,15 +54,27 @@ camera = Camera("camera")
 camera.enable(timestep)
 camera.recognitionEnable(timestep)
 #display = supervisor.getDevice("display_robot")
+display_explanation = supervisor.getDevice("display_explanation")
+display_explanation.setOpacity(0)
+
 display_score = supervisor.getDevice("display_score")
-display_score.setOpacity(0)
-#display_score.drawLine(0, 100, 10, 50)  # Test if drawing a line works (yes, it does)
-#display_score.drawText("Hello", 0, 3)
+display_score.setOpacity(1)
+display_score.setAlpha(0)
+display_score.fillRectangle(0, 0, display_score.getWidth(), display_score.getHeight())
+display_score.setAlpha(1)
+display_score.setColor(0x000000)
+display_score.setFont("Lucida Console", 64, True)
+display_score.drawText("Scoring display", 0, 0)
+display_score.fillRectangle(0, 100, 800, 10)
+
 width = camera.getWidth()
 height = camera.getHeight()
 # mouse = Mouse()
 # mouse.enable(timestep)
 # mouse.enable3dPosition()
+colors = {"yellow" : [0.309804, 0.913725, 1.0], "red" : [0.0, 0.0, 1.0], "green" : [0.0, 1.0, 0.0]}
+
+
 
 selection = None
 prevSelection = None
@@ -61,6 +82,8 @@ canSelection = None
 can_height = 0.85
 selectionName = None
 canSelectionName = None
+
+total_cans = {}
 
 can_num = 1
 missed = 0
@@ -70,11 +93,11 @@ wrongSort = 0
 
 
 joint_names = ['shoulder_pan_joint',
-                       'shoulder_lift_joint',
-                       'elbow_joint',
-                       'wrist_1_joint',
-                       'wrist_2_joint',
-                       'wrist_3_joint']
+                'shoulder_lift_joint',
+                'elbow_joint',
+                'wrist_1_joint',
+                'wrist_2_joint',
+                'wrist_3_joint']
         
 finger_names = ['right_finger', 'left_finger']                
 motors = [0] * len(joint_names)
@@ -87,18 +110,16 @@ for i in range(len(joint_names)):
     
     sensors[i] = supervisor.getDevice(joint_names[i] + '_sensor')
     sensors[i].enable(timestep)
-    motors[i].setPosition(float('inf'))
-    motors[i].setVelocity(3.14)                
-motors[0].setVelocity(1.5)         
+    #motors[i].setPosition(float('inf'))
+    #motors[i].setVelocity(3.14)                
+#motors[0].setVelocity(1.5)         
 for i in range(len(finger_names)):  
     fingers[i] = supervisor.getDevice(finger_names[i])
     sensor_fingers[i] = supervisor.getDevice(finger_names[i] + '_sensor')
     sensor_fingers[i].enable(timestep)
 
-
 distance_sensor = supervisor.getDevice("distance_sensor1") 
 distance_sensor.enable(timestep)  
-
 
 my_chain = ikpy.chain.Chain.from_urdf_file("resources/robot2.urdf")      
 
@@ -109,37 +130,63 @@ prepare_grap2 = False
 go_to_bucket2 = False
 drop = False
 
-fingers[0].setPosition(0.04)
-fingers[1].setPosition(0.04)
+moveFingers(fingers, mode = "open") 
 
-
-def position_Checker():
-    if sensors[0].getValue()-0.02 < joints[1] < sensors[0].getValue()+0.02 and sensors[1].getValue()-0.02 < joints[2] < sensors[1].getValue()+0.02 and sensors[2].getValue()-0.02 < joints[3] < sensors[2].getValue()+0.02 and sensors[3].getValue()-0.02 < joints[4] < sensors[3].getValue()+0.02 and sensors[4].getValue()-0.02 < joints[5] < sensors[4].getValue()+0.02 and sensors[5].getValue()-0.02 < joints[6] < sensors[5].getValue()+0.02:
-        return True
-    else:
-        return False
-
-# Get can objects
 
 root_children = supervisor.getRoot().getField("children")
 
 
-def countCans():
-    total_cans = []
+def displayScore(display, correct, incorrect, missed):
+    h = int(display.getHeight() / 5)
+    x = h
+
+    display.setAlpha(0)
+    display.fillRectangle(0, h, display.getWidth(), display.getHeight())
+    display.setAlpha(1)
+    display.setFont("Lucida Console", 64, True)
+    display.drawText("Correct:   {}".format(correct), 10, x)
+    x += h
+    display.drawText("Incorrect: {}".format(incorrect), 10, x)
+    x += h
+    display.drawText("Missed:    {}".format(missed), 10, x)
+    x += h
+    #display.setFont("Lucida Console", 48, True)
+    display.drawText("Total:     {}".format(correct-incorrect-missed), 10, x)
+
+
+def countCans(missed, total_cans):
     toRemove = []
     root_children_n = root_children.getCount()
     for n in range(root_children_n):
         if "CAN" in root_children.getMFNode(n).getDef():
             can = root_children.getMFNode(n)
+            can_id = can.getId()
             x, y, z = can.getField("translation").getSFVec3f()
-            if not x < -1.2 and y >= 0.8:
-            #root_children.getMFNode(n).remove()
-                total_cans.append(can.getId())
+            # If we already have the can, check if it should be removed
+            if can_id in list(total_cans.keys()):
+                if x < -1.2:# and y >= 0.8:
+                    missed += 1
+                    toRemove.append(can)
+                    del total_cans[can_id]
+                elif z > 0.6 or z < 0.4:
+                    del total_cans[can_id]
+            # If the can is not in the list yet, we should add it
             else:
-                toRemove.append(can)
+                if y >= 0.8:
+                    trueColor = can.getDef().split('_')[0].lower()
+                    if random.random() <= 0.7:
+                        total_cans[can_id] = trueColor
+                    else:
+                        options = ["yellow", "red", "green"]
+                        options.remove(trueColor)
+                        total_cans[can_id] = random.choice(options)
+                        #total_cans.append(can.getId())
     for item in toRemove:
         item.remove()
-    return total_cans
+    # for keys, vals in total_cans.items():
+    #   print (keys, vals)
+    # print("------------------------------------")
+    return total_cans, missed
 
 
 def onConveyorRanked(cans):
@@ -154,18 +201,28 @@ def onConveyorRanked(cans):
     return cansOnConveyor
 
 
-def drawImage(camera):
+def drawImage(camera, colors, total_cans):
     """
     Displays the image either in a new window, or on the Display
     """
     cameraData = camera.getImage()
     image = np.frombuffer(cameraData, np.uint8).reshape((camera.getHeight(), camera.getWidth(), 4))
     for obj in camera.getRecognitionObjects():
+        # Get the id of the object
+        obj_id = obj.get_id()
+        # Check if the object is on the conveyor or not
+        _, _, obj_z = supervisor.getFromId(obj_id).getField("translation").getSFVec3f()
+        if obj_z > 0.6 or obj_z < 0.4:
+            continue 
+        # Assign color
+        color = colors[total_cans[obj_id]]
+        #print(color)
+        color = np.rint(np.array(color)*255)
         size = np.array(obj.get_size_on_image()) + padding
         start_point = np.array(obj.get_position_on_image()) - (size / 2) 
         start_point =  np.array([int(n) for n in start_point])
         end_point = start_point + size
-        color = np.rint(np.array(obj.get_colors())*255)
+        #color = np.rint(np.array(obj.get_colors())*255)
         thickness = 2
         #color = [0, 255, 0]
         color = ( int (color [ 0 ]), int (color [ 1 ]), int (color [ 2 ]))
@@ -176,9 +233,9 @@ def drawImage(camera):
         #ir = display_score.imageNew(cameraData, Display.BGRA, camera.getWidth(), camera.getHeight())
         # Displaying the processed image
         cv2.imwrite('tmp.jpg', image)
-        ir = display_score.imageLoad('tmp.jpg')
-        display_score.imagePaste(ir, 0, 0, False)
-        display_score.imageDelete(ir)
+        ir = display_explanation.imageLoad('tmp.jpg')
+        display_explanation.imagePaste(ir, 0, 0, False)
+        display_explanation.imageDelete(ir)
     #imageRef = display.imageNew(cameraData, Display.ARGB, camera.getHeight(), camera.getWidth())
     #display.imagePaste(imageRef, 1024, 768)        
     #cv2.imshow("preview", image)
@@ -186,11 +243,6 @@ def drawImage(camera):
 
 
 def generateCans():
-    
-    # 
-    # Set coordinates, y = 0.88  # Height of the conveyor belt
-    #x += random.uniform(0.06, 0.1)
-    #z = random.uniform(0.455,0.555) # 0.455 < z < 0.555 - Width of the conveyor belt
 
     can_distances = [555, 535, 515, 495, 475, 455]
     can_colors = ["green", "yellow", "red"]
@@ -198,15 +250,15 @@ def generateCans():
     root_children.importMFNode(-1, can)
 
 
-
-
 while supervisor.step(timestep) != -1:
-    total_cans = countCans()
+    total_cans, missed = countCans(missed, total_cans)
     #print(total_cans)
     selection = supervisor.getSelected()
     selectionName = selection.getDef() if selection else ""
     selectionColor = selectionName.split('_')[0]
 
+    # for keys, vals in total_cans.items():
+    #     print (keys, vals)
     if "CAN" in selectionName:
         canSelection = selection
         canColor = selectionColor
@@ -215,10 +267,9 @@ while supervisor.step(timestep) != -1:
         new_position = selection.getField("translation").getSFVec3f()
         new_position[1] = can_height
         canSelection.getField("translation").setSFVec3f(new_position)
-        if selectionColor == canColor:
-            correctSort += 1
-            #total_cans.remove(canSelection.getId())
+        if selectionColor == canColor: correctSort += 1
         else: wrongSort += 1 
+        del total_cans[canSelection.getId()]
         canSelection = None
 
     # Check for missed ones:
@@ -228,110 +279,90 @@ while supervisor.step(timestep) != -1:
             missed += 1
 
     prevSelection = selection
-    if random.randrange(0,100) % 20 == 0:
+    displayScore(display_score, correctSort, wrongSort, missed)
+    if random.randrange(0,100) % 50 == 0:
         generateCans()
         #pass
     #print("Correct: {}\t Incorrect: {}\t Missed: {}\t Total: {}".format(correctSort, wrongSort, missed, correctSort-wrongSort-missed))
     #print(onConveyorRanked(total_cans))
-    if cam: drawImage(camera)
+    if cam: drawImage(camera, colors, total_cans)
+
+####################################################################################################################### 
+#######################################################################################################################
+#######################################################################################################################
+
+    # if prepare_grasp == True and bool(total_cans):
+
+    #     index = list(total_cans.keys())[0] #####SETTING THE CAN, CAN BE REPALCED BY AN ACTUAL ID#####
+    #     goal = supervisor.getFromId(index).getField("translation")
+    #     target = np.array(goal.getSFVec3f())
+
+    #     target_position = [target[2]-0.19, 0.167, target[1]-0.52]
+    #     #target_position = [target[2], 0.167, target[1]]
     
-    
-    if prepare_grasp == True:
+    #     orientation_axis = "Y"
+    #     target_orientation = [0, 0, -1]
         
+    #     joints = my_chain.inverse_kinematics(target_position, target_orientation=target_orientation, orientation_mode=orientation_axis)
         
-        index = 6 #####SETTING THE CAN, CAN BE REPALCED BY AN ACTUAL ID#####
-        
-        goal = supervisor.getFromDef("GREEN_CAN1").getField("translation")
-        target = np.array(goal.getSFVec3f())
-                 
-        target_position = [target[2]-0.19, 0.167, target[1]-0.52]
-    
-        orientation_axis = "Y"
-        target_orientation = [0, 0, -1]
-        
-        joints = my_chain.inverse_kinematics(target_position, target_orientation=target_orientation, orientation_mode=orientation_axis)
-        
-        for i in range(len(joint_names)):
-            motors[i].setPosition(joints[i+1])    
-        
-    
-        prepare_grasp = False
-        
- 
-            
-    if  prepare_grasp == False and position_Checker()==True and distance_sensor.getValue() < 800 and target[0] < 0.19 :
+    #     for i in range(len(joint_names)):
+    #         motors[i].setPosition(joints[i+1])    
+    #     print(joints)
+    #     #prepare_grasp = not position_Checker()
+    #     #print(distance_sensor.getValue())
+    #     prepare_grasp = False
+
+    # if  prepare_grasp == False and position_Checker()==True and distance_sensor.getValue() < 800 and target[0] < 0.19 :
          
-        #target_position = [target[2]-0.2, 0.167, target[1]-0.58]
+    #     for i in range(len(joint_names)):
+    #         motors[1].setPosition(0.15)    
+
+    #     lower_grasp = False        
+    #     prepare_grap2 = True        
+
+    # if  prepare_grap2 == True and distance_sensor.getValue() < 200:
+        
+    #     motors[1].setPosition(sensors[1].getValue())
+
+    #     moveFingers(fingers, "close")
+
+    #     go_to_bucket = True        
+    #     prepare_grap2 = False
+
+    # if  go_to_bucket == True and go_to_bucket2 == False and sensor_fingers[0].getValue() < 0.005 or sensor_fingers[1].getValue() < 0.005:
+
+    #     for i in range(len(joint_names)):
+    #             motors[1].setPosition(-0.5)
          
-        #orientation_axis = "Y"
-        #target_orientation = [0, 0, -1]
-    
-    
-        #joints = my_chain.inverse_kinematics(target_position, target_orientation=target_orientation, orientation_mode=orientation_axis)
+    #     if sensors[1].getValue()-0.1 < -0.5 < sensors[1].getValue()+0.1:
+    #             go_to_bucket2 = True    
+    #             go_to_bucket = False
+      
+    # if go_to_bucket2 == True:
+         
+    #      if index > 5:
+    #          for i in range(len(joint_names)):
+    #                  motors[0].setPosition(1.5)
+    #                  if sensors[0].getValue()-0.01 < 1.5 < sensors[0].getValue()+0.01:
+    #                      drop = True
+    #                      go_to_bucket2 = False
+
+    #      if index < 3:
+    #          for i in range(len(joint_names)):
+    #                  motors[0].setPosition(-1.8)
+    #                  if sensors[0].getValue()-0.01 < -1.8 < sensors[0].getValue()+0.01:
+    #                      drop = True
+    #                      go_to_bucket2 = False
+
+         
+    # if drop == True:
+    #    moveFingers(fingers, mode = "open") 
        
-        for i in range(len(joint_names)):
-            motors[1].setPosition(0.15)    
-
-
-        
-        lower_grasp = False        
-        prepare_grap2 = True        
- 
+    #    if sensor_fingers[0].getValue()-0.005 < 0.03 < sensor_fingers[0].getValue()+0.005: 
+    #        prepare_grasp = True
+    #        drop = False
+    # if bool(total_cans):
+    #     print(target[0])     
+    #     goal = supervisor.getFromId(index).getField("translation")
+    #     target = np.array(goal.getSFVec3f())          
     
-    if  prepare_grap2 == True and distance_sensor.getValue() < 200:
-        
-        
-        
-        motors[1].setPosition(sensors[1].getValue())
-        fingers[0].setPosition(0)
-        fingers[1].setPosition(0)
-        
-        
-        
-        go_to_bucket = True        
-        prepare_grap2 = False
-
-        
-    if  go_to_bucket == True and go_to_bucket2 == False and sensor_fingers[0].getValue() < 0.005 or sensor_fingers[1].getValue() < 0.005:
-        
-
-        for i in range(len(joint_names)):
-                motors[1].setPosition(-0.5)
-                
-        if sensors[1].getValue()-0.1 < -0.5 < sensors[1].getValue()+0.1:
-                go_to_bucket2 = True    
-                go_to_bucket = False
-               
-               
-    if go_to_bucket2 == True:
-         
-         if index > 5:
-             for i in range(len(joint_names)):
-                     motors[0].setPosition(1.5)
-                     if sensors[0].getValue()-0.01 < 1.5 < sensors[0].getValue()+0.01:
-                         drop = True
-                         go_to_bucket2 = False
-
-         if index < 3:
-             for i in range(len(joint_names)):
-                     motors[0].setPosition(-1.8)
-                     if sensors[0].getValue()-0.01 < -1.8 < sensors[0].getValue()+0.01:
-                         drop = True
-                         go_to_bucket2 = False
-
-         
-    if drop == True:
-        
-       fingers[0].setPosition(0.04)
-       fingers[1].setPosition(0.04)
-       
-       if sensor_fingers[0].getValue()-0.005 < 0.03 < sensor_fingers[0].getValue()+0.005: 
-           prepare_grasp = True
-           drop = False
-           
-           
-    goal = supervisor.getFromDef("GREEN_CAN1").getField("translation")
-    target = np.array(goal.getSFVec3f())          
-    
-    
-  

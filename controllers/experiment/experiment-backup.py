@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """experiment controller."""
 
 # You may need to import some classes of the controller module. Ex:
@@ -8,7 +8,8 @@ import numpy as np
 import cv2
 import random
 import os
-from pyutil import filereplace
+import ikpy
+from ikpy.chain import Chain
 
 
 
@@ -72,12 +73,63 @@ can_height = 0.85
 selectionName = None
 canSelectionName = None
 
+total_cans = {}
+
 can_num = 1
 missed = 0
 correctSort = 0
 wrongSort = 0
 
-# Get can objects
+
+
+joint_names = ['shoulder_pan_joint',
+                'shoulder_lift_joint',
+                'elbow_joint',
+                'wrist_1_joint',
+                'wrist_2_joint',
+                'wrist_3_joint']
+        
+finger_names = ['right_finger', 'left_finger']                
+motors = [0] * len(joint_names)
+sensors = [0] * len(joint_names)
+fingers = [0] * len(finger_names)
+sensor_fingers = [0] * len(finger_names)
+
+for i in range(len(joint_names)):  
+    motors[i] = supervisor.getDevice(joint_names[i])   
+    
+    sensors[i] = supervisor.getDevice(joint_names[i] + '_sensor')
+    sensors[i].enable(timestep)
+    #motors[i].setPosition(float('inf'))
+    #motors[i].setVelocity(3.14)                
+#motors[0].setVelocity(1.5)         
+for i in range(len(finger_names)):  
+    fingers[i] = supervisor.getDevice(finger_names[i])
+    sensor_fingers[i] = supervisor.getDevice(finger_names[i] + '_sensor')
+    sensor_fingers[i].enable(timestep)
+
+distance_sensor = supervisor.getDevice("distance_sensor1") 
+distance_sensor.enable(timestep)  
+
+my_chain = ikpy.chain.Chain.from_urdf_file("resources/robot2.urdf")      
+
+
+prepare_grasp = True
+go_to_bucket = False
+prepare_grap2 = False
+go_to_bucket2 = False
+drop = False
+
+fingers[0].setPosition(0.04)
+fingers[1].setPosition(0.04)
+
+
+def position_Checker():
+    if sensors[0].getValue()-0.02 < joints[1] < sensors[0].getValue()+0.02 and sensors[1].getValue()-0.02 < joints[2] < sensors[1].getValue()+0.02 and sensors[2].getValue()-0.02 < joints[3] < sensors[2].getValue()+0.02 and sensors[3].getValue()-0.02 < joints[4] < sensors[3].getValue()+0.02 and sensors[4].getValue()-0.02 < joints[5] < sensors[4].getValue()+0.02 and sensors[5].getValue()-0.02 < joints[6] < sensors[5].getValue()+0.02:
+        return True
+    else:
+        return False
+
 
 root_children = supervisor.getRoot().getField("children")
 
@@ -100,27 +152,35 @@ def displayScore(display, correct, incorrect, missed):
     display.drawText("Total:     {}".format(correct-incorrect-missed), 10, x)
 
 
-def countCans(missed):
-    total_cans = {}
+def countCans(missed, total_cans):
     toRemove = []
     root_children_n = root_children.getCount()
     for n in range(root_children_n):
         if "CAN" in root_children.getMFNode(n).getDef():
             can = root_children.getMFNode(n)
+            can_id = can.getId()
             x, y, z = can.getField("translation").getSFVec3f()
-            if not x < -1.2:# and y >= 0.8:
-            #root_children.getMFNode(n).remove()
+            # If we already have the can, check if it should be removed
+            if can_id in list(total_cans.keys()):
+                if x < -1.2:# and y >= 0.8:
+                    missed += 1
+                    toRemove.append(can)
+                    del total_cans[can_id]
+                elif z > 0.6 or z < 0.4:
+                    del total_cans[can_id]
+            # If the can is not in the list yet, we should add it
+            else:
                 if y >= 0.8:
                     if random.random() <= 0.6:
-                        total_cans[can.getId()] = can.getDef().split('_')[0].lower()
+                        total_cans[can_id] = can.getDef().split('_')[0].lower()
                     else:
-                        total_cans[can.getId()] = random.choice(["yellow", "red", "green"])
-                    #total_cans.append(can.getId())
-            else:
-                missed += 1
-                toRemove.append(can)
+                        total_cans[can_id] = random.choice(["yellow", "red", "green"])
+                        #total_cans.append(can.getId())
+    for keys, vals in total_cans.items():
+        print (keys, vals)
     for item in toRemove:
         item.remove()
+    print("------------------------------------")
     return total_cans, missed
 
 
@@ -136,7 +196,7 @@ def onConveyorRanked(cans):
     return cansOnConveyor
 
 
-def drawImage(camera, colors):
+def drawImage(camera, colors, total_cans):
     """
     Displays the image either in a new window, or on the Display
     """
@@ -145,13 +205,14 @@ def drawImage(camera, colors):
     for obj in camera.getRecognitionObjects():
         # Get the id of the object
         obj_id = obj.get_id()
-        # Assign color with 40% error rate
-        if random.random() <= 0.6:
-            color = np.rint(np.array(obj.get_colors())*255)
-            obj_color = list(colors.keys())[list(colors.values()).index(obj.get_colors())]
-        else:
-            color = np.rint(np.array(random.choice(list(colors.values())))*255)
-            obj_color = random.choice(list(colors.values()))
+        # Check if the object is on the conveyor or not
+        _, _, obj_z = supervisor.getFromId(obj_id).getField("translation").getSFVec3f()
+        if obj_z > 0.6 or obj_z < 0.4:
+            continue 
+        # Assign color
+        color = colors[total_cans[obj_id]]
+        #print(color)
+        color = np.rint(np.array(color)*255)
         size = np.array(obj.get_size_on_image()) + padding
         start_point = np.array(obj.get_position_on_image()) - (size / 2) 
         start_point =  np.array([int(n) for n in start_point])
@@ -176,11 +237,6 @@ def drawImage(camera, colors):
 
 
 def generateCans():
-    
-    # 
-    # Set coordinates, y = 0.88  # Height of the conveyor belt
-    #x += random.uniform(0.06, 0.1)
-    #z = random.uniform(0.455,0.555) # 0.455 < z < 0.555 - Width of the conveyor belt
 
     can_distances = [555, 535, 515, 495, 475, 455]
     can_colors = ["green", "yellow", "red"]
@@ -189,13 +245,13 @@ def generateCans():
 
 
 while supervisor.step(timestep) != -1:
-    total_cans, missed = countCans(missed)
+    total_cans, missed = countCans(missed, total_cans)
     #print(total_cans)
     selection = supervisor.getSelected()
     selectionName = selection.getDef() if selection else ""
     selectionColor = selectionName.split('_')[0]
-    for keys, vals in total_cans.items():
-        print (keys, vals)
+    # for keys, vals in total_cans.items():
+    #     print (keys, vals)
     if "CAN" in selectionName:
         canSelection = selection
         canColor = selectionColor
@@ -206,8 +262,9 @@ while supervisor.step(timestep) != -1:
         canSelection.getField("translation").setSFVec3f(new_position)
         if selectionColor == canColor:
             correctSort += 1
-            del total_cans[canSelection.getId()]
-        else: wrongSort += 1 
+        else:
+            wrongSort += 1
+        del total_cans[canSelection.getId()]
         canSelection = None
 
     # # Check for missed ones:
@@ -223,4 +280,4 @@ while supervisor.step(timestep) != -1:
         #pass
     #print("Correct: {}\t Incorrect: {}\t Missed: {}\t Total: {}".format(correctSort, wrongSort, missed, correctSort-wrongSort-missed))
     #print(onConveyorRanked(total_cans))
-    if cam: drawImage(camera, colors)
+    if cam: drawImage(camera, colors, total_cans)
