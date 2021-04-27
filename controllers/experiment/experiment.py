@@ -7,6 +7,21 @@ from controller import Robot, Camera, Supervisor, Display, MouseState, Mouse
 import numpy as np
 import cv2
 import random
+import os
+from pyutil import filereplace
+
+
+
+# def fileChanger(textToSearch, textToReplace):
+#     for file in os.listdir("resources"):
+#         f = "resources/" + file
+#         filereplace(f, textToSearch, textToReplace)
+
+#fileChanger("translation 4.05", "translation 3.1")
+
+
+
+
 
 random.seed(1)
 
@@ -52,12 +67,26 @@ correctSort = 0
 wrongSort = 0
 
 # Get can objects
-total_cans = []
+
 root_children = supervisor.getRoot().getField("children")
-root_children_n = root_children.getCount()
-for n in range(root_children_n):
-    if "CAN" in root_children.getMFNode(n).getDef():
-        total_cans.append(root_children.getMFNode(n).getId())
+
+
+def countCans():
+    total_cans = []
+    toRemove = []
+    root_children_n = root_children.getCount()
+    for n in range(root_children_n):
+        if "CAN" in root_children.getMFNode(n).getDef():
+            can = root_children.getMFNode(n)
+            x, y, z = can.getField("translation").getSFVec3f()
+            if not x < -1.2 and y >= 0.8:
+            #root_children.getMFNode(n).remove()
+                total_cans.append(can.getId())
+            else:
+                toRemove.append(can)
+    for item in toRemove:
+        item.remove()
+    return total_cans
 
 
 def onConveyorRanked(cans):
@@ -78,12 +107,12 @@ def drawImage(camera):
     """
     cameraData = camera.getImage()
     image = np.frombuffer(cameraData, np.uint8).reshape((camera.getHeight(), camera.getWidth(), 4))
-    for object in camera.getRecognitionObjects():
-        size = np.array(object.get_size_on_image()) + padding
-        start_point = np.array(object.get_position_on_image()) - (size / 2) 
+    for obj in camera.getRecognitionObjects():
+        size = np.array(obj.get_size_on_image()) + padding
+        start_point = np.array(obj.get_position_on_image()) - (size / 2) 
         start_point =  np.array([int(n) for n in start_point])
         end_point = start_point + size
-        color = np.rint(np.array(object.get_colors())*255)
+        color = np.rint(np.array(obj.get_colors())*255)
         thickness = 2
         #color = [0, 255, 0]
         color = ( int (color [ 0 ]), int (color [ 1 ]), int (color [ 2 ]))
@@ -104,23 +133,23 @@ def drawImage(camera):
 
 
 def generateCans():
-    # 0.455 < z < 0.555  # Width of the conveyor belt
-    # y = 0.88  # Height of the conveyor belt
-    x += random.uniform(0.06, 0.1), 
-    z = random.uniform(0.455,0.555)
-    can_
+    
+    # 
+    # Set coordinates, y = 0.88  # Height of the conveyor belt
+    #x += random.uniform(0.06, 0.1)
+    #z = random.uniform(0.455,0.555) # 0.455 < z < 0.555 - Width of the conveyor belt
+
+    can_distances = [555, 535, 515, 495, 475, 455]
     can_colors = ["green", "yellow", "red"]
-    can = "resources/" + random.choice(can_colors) + "_can.wbo"
+    can = "resources/" + random.choice(can_colors) + "_can_" + str(random.choice(can_distances)) + ".wbo"
     root_children.importMFNode(-1, can)
-    supervisor.getFromDef
-    can_num += 1
-    return can
 
 
 
 
 while supervisor.step(timestep) != -1:
-
+    total_cans = countCans()
+    print(total_cans)
     selection = supervisor.getSelected()
     selectionName = selection.getDef() if selection else ""
     selectionColor = selectionName.split('_')[0]
@@ -135,20 +164,20 @@ while supervisor.step(timestep) != -1:
         canSelection.getField("translation").setSFVec3f(new_position)
         if selectionColor == canColor:
             correctSort += 1
-            total_cans.remove(canSelection.getId())
+            #total_cans.remove(canSelection.getId())
         else: wrongSort += 1 
         canSelection = None
 
     # Check for missed ones:
-    missCount = 0
     for canID in total_cans:  
         canX, _, _ = supervisor.getFromId(canID).getField("translation").getSFVec3f()
         if canX < -1.5:
-            missCount += 1
+            missed += 1
 
-    missed = missCount
     prevSelection = selection
-    generateCans()
+    if random.randrange(0,100) % 20 == 0:
+        generateCans()
+        #pass
     #print("Correct: {}\t Incorrect: {}\t Missed: {}\t Total: {}".format(correctSort, wrongSort, missed, correctSort-wrongSort-missed))
     #print(onConveyorRanked(total_cans))
     if cam: drawImage(camera)

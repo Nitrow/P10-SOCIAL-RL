@@ -48,7 +48,7 @@ DEF RED_CAN Solid {
   }
   physics Physics {
     density -1
-    mass 0.35
+    mass 0.0001
   }
   recognitionColors [
     0 0 1

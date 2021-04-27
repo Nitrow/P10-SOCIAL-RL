@@ -1,6 +1,6 @@
 #VRML_OBJ R2021a utf8
 DEF YELLOW_CAN Solid {
-  translation 4.05 0.88 0.455
+  translation 3.1 0.87 0.455
   children [
     Shape {
       appearance PBRAppearance {
@@ -48,7 +48,7 @@ DEF YELLOW_CAN Solid {
   }
   physics Physics {
     density -1
-    mass 0.35
+    mass 0.0001
   }
   recognitionColors [
     0.309804 0.913725 1
