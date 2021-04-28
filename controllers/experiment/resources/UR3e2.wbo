@@ -16,7 +16,7 @@ DEF UR3 UR3e {
         }
         roughness 1
       }
-      physics Physics {
+      physics DEF PHYSICS Physics {
         mass 1
       }
     }
@@ -50,7 +50,7 @@ DEF UR3 UR3e {
           }
           roughness 1
         }
-        physics Physics {
+        physics DEF PHYSICS Physics {
           mass 0.1
         }
       }
@@ -82,7 +82,7 @@ DEF UR3 UR3e {
           }
           roughness 1
         }
-        physics Physics {
+        physics DEF PHYSICS Physics {
           mass 0.1
         }
       }

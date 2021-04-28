@@ -11,20 +11,25 @@ import os
 import ikpy
 from ikpy.chain import Chain
 
+
 random.seed(1)
 
 
 global can_num
 can_num = 0
 
-max_cans = 20
 
+# 50-33 takes 100sec
+max_cans = 50  # 20 is doable with 50 freq
+freq = 33  # 50 is doable
+
+# from pyutil import filereplace
 # def fileChanger(textToSearch, textToReplace):
 #     for file in os.listdir("resources"):
 #         f = "resources/" + file
 #         filereplace(f, textToSearch, textToReplace)
 
-#fileChanger("translation 4.05", "translation 3.1")
+# fileChanger("physics Physics", "physics DEF PHYSICS Physics")
 
 def moveFingers(fingers, mode="open"):
 
@@ -105,18 +110,10 @@ camera.enable(timestep)
 camera.recognitionEnable(timestep)
 #display = supervisor.getDevice("display_robot")
 display_explanation = supervisor.getDevice("display_explanation")
-display_explanation.setOpacity(0)
-
 display_score = supervisor.getDevice("display_score")
 display_score.setOpacity(1)
 display_score.setAlpha(0)
 display_score.fillRectangle(0, 0, display_score.getWidth(), display_score.getHeight())
-display_score.setAlpha(1)
-display_score.setColor(0x000000)
-display_score.setFont("Lucida Console", 64, True)
-display_score.drawText("Scoring display", 0, 0)
-display_score.fillRectangle(0, 100, 800, 10)
-
 width = camera.getWidth()
 height = camera.getHeight()
 # mouse = Mouse()
@@ -191,6 +188,16 @@ root_children = supervisor.getRoot().getField("children")
 def displayScore(display, correct, incorrect, missed):
     h = int(display.getHeight() / 5)
     x = h
+    display_explanation.setOpacity(0)
+
+    display.setOpacity(1)
+    display.setAlpha(0)
+    display.fillRectangle(0, 0, display_score.getWidth(), display_score.getHeight())
+    display.setAlpha(1)
+    display.setColor(0x000000)
+    display.setFont("Lucida Console", 64, True)
+    display.drawText("Scoring display", 0, 0)
+    display.fillRectangle(0, 100, 800, 10)
 
     display.setAlpha(0)
     display.fillRectangle(0, h, display.getWidth(), display.getHeight())
@@ -264,6 +271,8 @@ def drawImage(camera, colors, candidates):
     for obj in camera.getRecognitionObjects():
         # Get the id of the object
         obj_id = obj.get_id()
+        if obj_id not in candidates.keys():
+            continue
         reason = candidates[obj_id][2]
         # Check if the object is on the conveyor or not
         _, _, obj_z = supervisor.getFromId(obj_id).getField("translation").getSFVec3f()
@@ -316,10 +325,21 @@ def generateCans():
 
 
 def endGame():
+    [supervisor.step(64) for x in range(10)]
     displayScore(display_score, correctSort, wrongSort, missed)
     supervisor.step(64)
     supervisor.simulationSetMode(0)
 
+
+def changeMass(node, mass):
+    node_children = node.getField("children")
+    node_children_count = node_children.getCount()
+    print(node_children_count)
+    for n in range(node_children_count):
+        print(node_children.getMFNode(n).getDef())
+        if "PHYSICS" in node_children.getMFNode(n).getDef():
+            n.getField("mass").setSFFloat(mass)
+            break
 
 while supervisor.step(timestep) != -1:
     total_cans, missed = countCans(missed, total_cans)
@@ -339,6 +359,7 @@ while supervisor.step(timestep) != -1:
         new_position = selection.getField("translation").getSFVec3f()
         new_position[1] = can_height
         canSelection.getField("translation").setSFVec3f(new_position)
+        changeMass(canSelection, 3)
         if selectionColor == canColor: correctSort += 1
         else: wrongSort += 1 
         del total_cans[canSelection.getId()]
@@ -352,7 +373,7 @@ while supervisor.step(timestep) != -1:
 
     prevSelection = selection
     
-    if random.randrange(0,100) % 50 == 0:
+    if random.randrange(0,100) % freq == 0:
         if can_num < max_cans:
             generateCans()
         #pass

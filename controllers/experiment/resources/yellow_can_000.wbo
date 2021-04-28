@@ -47,7 +47,7 @@ DEF YELLOW_CAN Solid {
     radius 0.03175
     subdivision 20
   }
-  physics Physics {
+  physics DEF PHYSICS Physics {
     density -1
     mass 0.0001
   }
