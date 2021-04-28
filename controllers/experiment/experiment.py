@@ -133,6 +133,7 @@ prepare_grap2 = False
 go_to_bucket2 = False
 drop = False
 
+
 moveFingers(fingers) 
 
 
@@ -337,33 +338,32 @@ while supervisor.step(timestep) != -1:
          for i in range(len(joint_names)):
                  motors[1].setPosition(-1)
          
-         if sensors[1].getValue()-0.2 < -1 < sensors[1].getValue()+0.2:
+    if go_to_bucket == True and go_to_bucket2 == False and sensors[1].getValue()-0.2 < -1 < sensors[1].getValue()+0.2:
                  go_to_bucket2 = True    
                  go_to_bucket = False
     
+    
+    
     if go_to_bucket2 == True:
-         
-          if index > 5:
+          print(index)
+          go_to_bucket2 = False     
+          if total_cans[index] == "green":
               for i in range(len(joint_names)):
                       motors[0].setPosition(1.5)
-                      if sensors[0].getValue()-0.01 < 1.5 < sensors[0].getValue()+0.01:
-                          drop = True
-                          go_to_bucket2 = False
+                      drop = True
 
-          if index < 3:
+          elif total_cans[index] == "red":
               for i in range(len(joint_names)):
                       motors[0].setPosition(-1.8)
-                      if sensors[0].getValue()-0.01 < -1.8 < sensors[0].getValue()+0.01:
-                          drop = True
-                          go_to_bucket2 = False
+                      drop = True
 
+    
          
-    if drop == True:
+    if  drop == True and sensors[0].getValue()-0.01 < 1.5 < sensors[0].getValue()+0.01 or sensors[0].getValue()-0.01 < -1.8 < sensors[0].getValue()+0.01:
         moveFingers(fingers, mode = "open") 
-       
-        if sensor_fingers[0].getValue()-0.005 < 0.03 < sensor_fingers[0].getValue()+0.005: 
-            prepare_grasp = True
-            drop = False
+        go_to_bucket2 == False
+        prepare_grasp = True
+        drop = False
     if bool(total_cans): 
          goal = supervisor.getFromId(index).getField("translation")
          target = np.array(goal.getSFVec3f())          
