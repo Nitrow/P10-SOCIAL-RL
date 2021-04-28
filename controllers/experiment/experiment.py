@@ -11,7 +11,13 @@ import os
 import ikpy
 from ikpy.chain import Chain
 
+random.seed(1)
 
+
+global can_num
+can_num = 0
+
+max_cans = 20
 
 # def fileChanger(textToSearch, textToReplace):
 #     for file in os.listdir("resources"):
@@ -30,13 +36,54 @@ def moveFingers(fingers, mode="open"):
         fingers[1].setPosition(0)
 
 
+def pickTargers(total_cans, choices=5):
+    """
+    Gets five targets based on 3 criteria (assessing each can):
+    1. Right color
+    2. Furthest on the conveyor belt
+    3. Right pose (graspable)
+    4. Closeness to other candidate
+
+    Returns:
+        A dictionary with the IDs, where each ID contains:
+            1. Perceived colour of the can
+            2. Position of the can
+            3. Additional text (explanation - if applicable)
+    """
+
+    # Check if yellow or green
+    candidates = {}
+    top5_dists = []
+    top5_keys = []
+    for key, val in total_cans.items():
+        reason = ""
+        candidates[key] = [val]
+        candidates[key].append(supervisor.getFromId(key).getField("translation").getSFVec3f())
+        
+        if val in ["green", "red"]:
+            if abs(supervisor.getFromId(key).getField("rotation").getSFRotation()[3]) > 0.1:
+                reason += "graspError"
+            elif candidates[key][1][0] > 0.5:
+                top5_keys.append(key)
+                top5_dists.append(candidates[key][1][0])
+        else:
+            reason += "colorError"
+
+        candidates[key].append(reason)
+    top5 = sorted(zip(top5_dists, top5_keys), key=lambda x: x[1])[:choices]
+
+    for i in range(len(top5)):
+        candidates[top5[i][1]][2] = str(i+1)
+
+    return candidates
+
+
 def position_Checker():
     """
     Returns true if all joints are 0.02 rad within the desired angles
     """
     return all([abs(sensors[i].getValue() - joints[i+1]) < 0.02 for i in range(len(sensors))])
 
-random.seed(1)
 
 y = 0.88
 x = 3.17
@@ -88,7 +135,7 @@ canSelectionName = None
 
 total_cans = {}
 
-can_num = 1
+
 missed = 0
 correctSort = 0
 wrongSort = 0
@@ -132,6 +179,8 @@ go_to_bucket = False
 prepare_grap2 = False
 go_to_bucket2 = False
 drop = False
+
+candidates = {}
 
 moveFingers(fingers) 
 
@@ -186,9 +235,11 @@ def countCans(missed, total_cans):
                         #total_cans.append(can.getId())
     for item in toRemove:
         item.remove()
-    # for keys, vals in total_cans.items():
+
+    # for keys, vals in candidates.items():
     #   print (keys, vals)
     # print("------------------------------------")
+    print(can_num)
     return total_cans, missed
 
 
@@ -204,7 +255,7 @@ def onConveyorRanked(cans):
     return cansOnConveyor
 
 
-def drawImage(camera, colors, total_cans):
+def drawImage(camera, colors, candidates):
     """
     Displays the image either in a new window, or on the Display
     """
@@ -213,12 +264,13 @@ def drawImage(camera, colors, total_cans):
     for obj in camera.getRecognitionObjects():
         # Get the id of the object
         obj_id = obj.get_id()
+        reason = candidates[obj_id][2]
         # Check if the object is on the conveyor or not
         _, _, obj_z = supervisor.getFromId(obj_id).getField("translation").getSFVec3f()
-        if obj_z > 0.6 or obj_z < 0.4:
+        if obj_z > 0.6 or obj_z < 0.4 or reason == "":
             continue 
         # Assign color
-        color = colors[total_cans[obj_id]]
+        color = colors[candidates[obj_id][0]]
         #print(color)
         color = np.rint(np.array(color)*255)
         size = np.array(obj.get_size_on_image()) + padding
@@ -228,9 +280,18 @@ def drawImage(camera, colors, total_cans):
         #color = np.rint(np.array(obj.get_colors())*255)
         thickness = 2
         #color = [0, 255, 0]
+
         color = ( int (color [ 0 ]), int (color [ 1 ]), int (color [ 2 ]))
-        image = cv2.rectangle(image, tuple(start_point), tuple(end_point), tuple(color), thickness)
-    
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        if reason.isdigit():
+            image = cv2.rectangle(image, tuple(start_point), tuple(end_point), tuple(color), thickness)
+            start_point[1] -= 20
+            text = reason
+        if reason == 'colorError' or reason == 'graspError':
+            text = "Can't sort color" if reason == 'colorError' else 'Unable to grasp'
+        cv2.putText(image, text, tuple(start_point), font, 1, tuple(color), 2)
+
+
     if cameraData:
         # Displaying the camera image directly
         #ir = display_score.imageNew(cameraData, Display.BGRA, camera.getWidth(), camera.getHeight())
@@ -246,15 +307,23 @@ def drawImage(camera, colors, total_cans):
 
 
 def generateCans():
-
-    can_distances = [555, 535, 515, 495, 475, 455]
+    global can_num 
+    can_num += 1
+    can_distances = ["000", "999", "555", "535", "515", "495", "475", "455"]
     can_colors = ["green", "yellow", "red"]
-    can = "resources/" + random.choice(can_colors) + "_can_" + str(random.choice(can_distances)) + ".wbo"
+    can = "resources/" + random.choice(can_colors) + "_can_" + random.choice(can_distances) + ".wbo"
     root_children.importMFNode(-1, can)
+
+
+def endGame():
+    displayScore(display_score, correctSort, wrongSort, missed)
+    supervisor.step(64)
+    supervisor.simulationSetMode(0)
 
 
 while supervisor.step(timestep) != -1:
     total_cans, missed = countCans(missed, total_cans)
+    candidates = pickTargers(total_cans, 3)
     #print(total_cans)
     selection = supervisor.getSelected()
     selectionName = selection.getDef() if selection else ""
@@ -282,89 +351,91 @@ while supervisor.step(timestep) != -1:
             missed += 1
 
     prevSelection = selection
-    displayScore(display_score, correctSort, wrongSort, missed)
+    
     if random.randrange(0,100) % 50 == 0:
-        generateCans()
+        if can_num < max_cans:
+            generateCans()
         #pass
     #print("Correct: {}\t Incorrect: {}\t Missed: {}\t Total: {}".format(correctSort, wrongSort, missed, correctSort-wrongSort-missed))
     #print(onConveyorRanked(total_cans))
-    if cam: drawImage(camera, colors, total_cans)
+    if cam: drawImage(camera, colors, candidates)
+    if can_num >= max_cans and not bool(total_cans):
+        endGame()
 
 ####################################################################################################################### 
 #######################################################################################################################
 #######################################################################################################################
 
-    if prepare_grasp == True and bool(total_cans):
+    # if prepare_grasp == True and bool(total_cans):
 
-         index = list(total_cans.keys())[0] #####SETTING THE CAN, CAN BE REPALCED BY AN ACTUAL ID#####
-         goal = supervisor.getFromId(index).getField("translation")
-         target = np.array(goal.getSFVec3f())
+    #      index = list(total_cans.keys())[0] #####SETTING THE CAN, CAN BE REPALCED BY AN ACTUAL ID#####
+    #      goal = supervisor.getFromId(index).getField("translation")
+    #      target = np.array(goal.getSFVec3f())
 
-         target_position = [target[2], 0.167, target[1]-0.48]
-         #target_position = [target[2], 0.167, target[1]]
+    #      target_position = [target[2], 0.167, target[1]-0.48]
+    #      #target_position = [target[2], 0.167, target[1]]
     
-         orientation_axis = "Y"
-         target_orientation = [0, 0, -1]
+    #      orientation_axis = "Y"
+    #      target_orientation = [0, 0, -1]
         
-         joints = my_chain.inverse_kinematics(target_position, target_orientation=target_orientation, orientation_mode=orientation_axis)
+    #      joints = my_chain.inverse_kinematics(target_position, target_orientation=target_orientation, orientation_mode=orientation_axis)
         
-         for i in range(len(joint_names)):
-             motors[i].setPosition(joints[i+1])    
-         print(joints)
-         #prepare_grasp = not position_Checker()
-         #print(distance_sensor.getValue())
-         prepare_grasp = False
+    #      for i in range(len(joint_names)):
+    #          motors[i].setPosition(joints[i+1])    
+    #      print(joints)
+    #      #prepare_grasp = not position_Checker()
+    #      #print(distance_sensor.getValue())
+    #      prepare_grasp = False
 
-    if  prepare_grasp == False and position_Checker()==True and distance_sensor.getValue() < 800 and target[0] < 0.19 :
+    # if  prepare_grasp == False and position_Checker()==True and distance_sensor.getValue() < 800 and target[0] < 0.19 :
          
-         for i in range(len(joint_names)):
-             motors[1].setPosition(0.15)    
-
-         lower_grasp = False        
-         prepare_grap2 = True        
-
-    if  prepare_grap2 == True and distance_sensor.getValue() < 200:
-        
-         motors[1].setPosition(sensors[1].getValue())
-
-         moveFingers(fingers, "close")
-
-         go_to_bucket = True        
-         prepare_grap2 = False
-
-    if  go_to_bucket == True and go_to_bucket2 == False and sensor_fingers[0].getValue() < 0.012 or sensor_fingers[1].getValue() < 0.012:
-
-         for i in range(len(joint_names)):
-                 motors[1].setPosition(-1)
-         
-         if sensors[1].getValue()-0.2 < -1 < sensors[1].getValue()+0.2:
-                 go_to_bucket2 = True    
-                 go_to_bucket = False
-    
-    if go_to_bucket2 == True:
-         
-          if index > 5:
-              for i in range(len(joint_names)):
-                      motors[0].setPosition(1.5)
-                      if sensors[0].getValue()-0.01 < 1.5 < sensors[0].getValue()+0.01:
-                          drop = True
-                          go_to_bucket2 = False
-
-          if index < 3:
-              for i in range(len(joint_names)):
-                      motors[0].setPosition(-1.8)
-                      if sensors[0].getValue()-0.01 < -1.8 < sensors[0].getValue()+0.01:
-                          drop = True
-                          go_to_bucket2 = False
-
-         
-    if drop == True:
-        moveFingers(fingers, mode = "open") 
+    #      for i in range(len(joint_names)):
+    #          motors[1].setPosition(0.15)    
        
-        if sensor_fingers[0].getValue()-0.005 < 0.03 < sensor_fingers[0].getValue()+0.005: 
-            prepare_grasp = True
-            drop = False
-    if bool(total_cans): 
-         goal = supervisor.getFromId(index).getField("translation")
-         target = np.array(goal.getSFVec3f())          
+    #      prepare_grap2 = True        
+
+    # if  prepare_grap2 == True and distance_sensor.getValue() < 200:
+        
+    #      motors[1].setPosition(sensors[1].getValue())
+
+    #      moveFingers(fingers, "close")
+
+    #      go_to_bucket = True        
+    #      prepare_grap2 = False
+
+    # if  go_to_bucket == True and go_to_bucket2 == False and sensor_fingers[0].getValue() < 0.012 or sensor_fingers[1].getValue() < 0.012:
+
+    #      for i in range(len(joint_names)):
+    #              motors[1].setPosition(-1)
+         
+    #      if sensors[1].getValue()-0.2 < -1 < sensors[1].getValue()+0.2:
+    #              go_to_bucket2 = True    
+    #              go_to_bucket = False
+    
+    # if go_to_bucket2 == True:
+         
+    #       if index > 5:
+    #           for i in range(len(joint_names)):
+    #                   motors[0].setPosition(1.5)
+    #                   if sensors[0].getValue()-0.01 < 1.5 < sensors[0].getValue()+0.01:
+    #                       drop = True
+    #                       go_to_bucket2 = False
+
+    #       if index < 3:
+    #           for i in range(len(joint_names)):
+    #                   motors[0].setPosition(-1.8)
+    #                   if sensors[0].getValue()-0.01 < -1.8 < sensors[0].getValue()+0.01:
+    #                       drop = True
+    #                       go_to_bucket2 = False
+
+         
+    # if drop == True:
+    #     moveFingers(fingers, mode = "open") 
+       
+    #     if sensor_fingers[0].getValue()-0.005 < 0.03 < sensor_fingers[0].getValue()+0.005: 
+    #         #prepare_grasp = True
+    #         drop = False
+    # if bool(total_cans) and not prepare_grap2: 
+    #      goal = supervisor.getFromId(index).getField("translation")
+    #      target = np.array(goal.getSFVec3f())          
     
