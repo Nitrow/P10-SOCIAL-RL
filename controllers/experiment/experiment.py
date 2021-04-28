@@ -59,15 +59,15 @@ def pickTargers(total_cans, choices=5):
         reason = ""
         candidates[key] = [val]
         candidates[key].append(supervisor.getFromId(key).getField("translation").getSFVec3f())
-        
-        if val in ["green", "red"]:
-            if abs(supervisor.getFromId(key).getField("rotation").getSFRotation()[3]) > 0.1:
-                reason += "graspError"
-            elif candidates[key][1][0] > 0.5:
-                top5_keys.append(key)
-                top5_dists.append(candidates[key][1][0])
-        else:
-            reason += "colorError"
+        if candidates[key][1][0] > 0.3:
+            if val in ["green", "red"]:
+                if abs(supervisor.getFromId(key).getField("rotation").getSFRotation()[3]) > 0.1:
+                    reason += "graspError"
+                else:
+                    top5_keys.append(key)
+                    top5_dists.append(candidates[key][1][0])
+            else:
+                reason += "colorError"
 
         candidates[key].append(reason)
     top5 = sorted(zip(top5_dists, top5_keys), key=lambda x: x[1])[:choices]
@@ -408,33 +408,33 @@ while supervisor.step(timestep) != -1:
     #      for i in range(len(joint_names)):
     #              motors[1].setPosition(-1)
          
-    if go_to_bucket == True and go_to_bucket2 == False and sensors[1].getValue()-0.2 < -1 < sensors[1].getValue()+0.2:
-                 go_to_bucket2 = True    
-                 go_to_bucket = False
+    # if go_to_bucket == True and go_to_bucket2 == False and sensors[1].getValue()-0.2 < -1 < sensors[1].getValue()+0.2:
+    #              go_to_bucket2 = True    
+    #              go_to_bucket = False
     
     
     
-    if go_to_bucket2 == True:
-          print(index)
-          go_to_bucket2 = False     
-          if total_cans[index] == "green":
-              for i in range(len(joint_names)):
-                      motors[0].setPosition(1.5)
-                      drop = True
+    # if go_to_bucket2 == True:
+    #       print(index)
+    #       go_to_bucket2 = False     
+    #       if total_cans[index] == "green":
+    #           for i in range(len(joint_names)):
+    #                   motors[0].setPosition(1.5)
+    #                   drop = True
 
-          elif total_cans[index] == "red":
-              for i in range(len(joint_names)):
-                      motors[0].setPosition(-1.8)
-                      drop = True
+    #       elif total_cans[index] == "red":
+    #           for i in range(len(joint_names)):
+    #                   motors[0].setPosition(-1.8)
+    #                   drop = True
 
     
          
-    if  drop == True and sensors[0].getValue()-0.01 < 1.5 < sensors[0].getValue()+0.01 or sensors[0].getValue()-0.01 < -1.8 < sensors[0].getValue()+0.01:
-        moveFingers(fingers, mode = "open") 
-        go_to_bucket2 == False
-        prepare_grasp = True
-        drop = False
-    if bool(total_cans): 
-         goal = supervisor.getFromId(index).getField("translation")
-         target = np.array(goal.getSFVec3f())          
+    # if  drop == True and sensors[0].getValue()-0.01 < 1.5 < sensors[0].getValue()+0.01 or sensors[0].getValue()-0.01 < -1.8 < sensors[0].getValue()+0.01:
+    #     moveFingers(fingers, mode = "open") 
+    #     go_to_bucket2 == False
+    #     prepare_grasp = True
+    #     drop = False
+    # if bool(total_cans): 
+    #      goal = supervisor.getFromId(index).getField("translation")
+    #      target = np.array(goal.getSFVec3f())          
     
