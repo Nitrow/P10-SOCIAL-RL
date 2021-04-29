@@ -48,7 +48,7 @@ DEF YELLOW_CAN Solid {
   }
   physics DEF PHYSICS Physics {
     density -1
-    mass 0.0001
+    mass 0.1
   }
   recognitionColors [
     0.309804 0.913725 1
