@@ -18,10 +18,13 @@ random.seed(1)
 global can_num
 can_num = 0
 
+reason_dict = { 'colorError' : "Can't sort color", 
+                'graspError': "Unable to grasp", 
+                'proximityError': "Can't reach in time"}
 
 # 50-33 takes 100sec
-max_cans = 50  # 20 is doable with 50 freq
-freq = 33  # 50 is doable
+max_cans = 2  # 20 is doable with 50 freq
+freq = 50  # Less is more - 50 is doable
 
 # from pyutil import filereplace
 # def fileChanger(textToSearch, textToReplace):
@@ -41,13 +44,13 @@ def moveFingers(fingers, mode="open"):
         fingers[1].setPosition(0)
 
 
-def pickTargers(total_cans, choices=5):
+def pickTargers(total_cans, choices=5, min_dist = 0.5):
     """
     Gets five targets based on 3 criteria (assessing each can):
     1. Right color
     2. Furthest on the conveyor belt
     3. Right pose (graspable)
-    4. Closeness to other candidate
+    4. Closeness to other candidate (can't make it in time)
 
     Returns:
         A dictionary with the IDs, where each ID contains:
@@ -66,7 +69,7 @@ def pickTargers(total_cans, choices=5):
         candidates[key].append(supervisor.getFromId(key).getField("translation").getSFVec3f())
         if candidates[key][1][0] > 0.3:
             if val in ["green", "red"]:
-                if abs(supervisor.getFromId(key).getField("rotation").getSFRotation()[3]) > 0.1:
+                if abs(supervisor.getFromId(key).getField("rotation").getSFRotation()[3]) > 0.3:
                     reason += "graspError"
                 else:
                     top5_keys.append(key)
@@ -75,10 +78,26 @@ def pickTargers(total_cans, choices=5):
                 reason += "colorError"
 
         candidates[key].append(reason)
-    top5 = sorted(zip(top5_dists, top5_keys), key=lambda x: x[1])[:choices]
+    #top_choices = sorted(zip(top5_dists, top5_keys), key=lambda x: x[1])[:choices]
 
-    for i in range(len(top5)):
-        candidates[top5[i][1]][2] = str(i+1)
+    sorted_cans = sorted(zip(top5_dists, top5_keys), key=lambda x: x[1])
+    
+    top_choices = []
+
+    for i in range(len(sorted_cans)):
+        # we take the first one and last one always
+        if i == 0:
+            top_choices.append(sorted_cans[i])
+        # Check distance to next can
+        else:
+            if abs(top_choices[-1][0] - sorted_cans[i][0]) <= min_dist:
+                candidates[sorted_cans[i][1]][2] = "proximityError"
+            else:
+                top_choices.append(sorted_cans[i])
+        if len(top_choices) == choices:
+            break
+    for i in range(len(top_choices)):
+        candidates[top_choices[i][1]][2] = str(i+1)
 
     return candidates
 
@@ -110,10 +129,13 @@ camera.enable(timestep)
 camera.recognitionEnable(timestep)
 #display = supervisor.getDevice("display_robot")
 display_explanation = supervisor.getDevice("display_explanation")
+
+# Make the display transparent
 display_score = supervisor.getDevice("display_score")
 display_score.setOpacity(1)
 display_score.setAlpha(0)
 display_score.fillRectangle(0, 0, display_score.getWidth(), display_score.getHeight())
+
 width = camera.getWidth()
 height = camera.getHeight()
 # mouse = Mouse()
@@ -186,31 +208,33 @@ root_children = supervisor.getRoot().getField("children")
 
 
 def displayScore(display, correct, incorrect, missed):
-    h = int(display.getHeight() / 5)
+    h = int(display.getHeight() / 6)
+    w = int(display.getWidth() / 2)
     x = h
-    display_explanation.setOpacity(0)
+    margin = int(display.getWidth()*0.05)
+
+    robot_correct, robot_incorrect = 0, 0
 
     display.setOpacity(1)
-    display.setAlpha(0)
+    display.setAlpha(1)
     display.fillRectangle(0, 0, display_score.getWidth(), display_score.getHeight())
     display.setAlpha(1)
+    display.setColor(0xFF0000)
+    display.setFont("Lucida Console", 64, True)
+    display.drawText("Game Over!", 300, 0)
+    display.setFont("Lucida Console", 32, True)
     display.setColor(0x000000)
-    display.setFont("Lucida Console", 64, True)
-    display.drawText("Scoring display", 0, 0)
-    display.fillRectangle(0, 100, 800, 10)
-
-    display.setAlpha(0)
-    display.fillRectangle(0, h, display.getWidth(), display.getHeight())
-    display.setAlpha(1)
-    display.setFont("Lucida Console", 64, True)
-    display.drawText("Correct:   {}".format(correct), 10, x)
+    display.drawText("User score:   Robot score:".format(correct), w-200, x)
     x += h
-    display.drawText("Incorrect: {}".format(incorrect), 10, x)
+    display.drawText("Correct:         {}             {}".format(correct, robot_correct), margin, x)
     x += h
-    display.drawText("Missed:    {}".format(missed), 10, x)
+    display.drawText("Incorrect:       {}             {}".format(incorrect, robot_incorrect), margin, x)
     x += h
-    #display.setFont("Lucida Console", 48, True)
-    display.drawText("Total:     {}".format(correct-incorrect-missed), 10, x)
+    display.fillRectangle(margin, int(x-h/2), int(2*w-2*margin), int(h/20))
+    display.drawText("Missed: {}".format(missed), margin, x)
+    x += h
+    display.setFont("Lucida Console", 48, True)
+    display.drawText("Total score:     {}".format(correct-incorrect-missed), margin, x)
 
 
 def countCans(missed, total_cans):
@@ -243,10 +267,10 @@ def countCans(missed, total_cans):
     for item in toRemove:
         item.remove()
 
-    # for keys, vals in candidates.items():
-    #   print (keys, vals)
-    # print("------------------------------------")
-    print(can_num)
+    for keys, vals in candidates.items():
+      print (keys, vals)
+    print("------------------------------------")
+    #print(can_num)
     return total_cans, missed
 
 
@@ -296,8 +320,8 @@ def drawImage(camera, colors, candidates):
             image = cv2.rectangle(image, tuple(start_point), tuple(end_point), tuple(color), thickness)
             start_point[1] -= 20
             text = reason
-        if reason == 'colorError' or reason == 'graspError':
-            text = "Can't sort color" if reason == 'colorError' else 'Unable to grasp'
+        if reason in list(reason_dict.keys()):
+            text = reason_dict[reason]
         cv2.putText(image, text, tuple(start_point), font, 1, tuple(color), 2)
 
 
@@ -334,7 +358,7 @@ def endGame():
 def changeMass(node, mass):
     node_children = node.getField("children")
     node_children_count = node_children.getCount()
-    print(node_children_count)
+    #print(node_children_count)
     for n in range(node_children_count):
         print(node_children.getMFNode(n).getDef())
         if "PHYSICS" in node_children.getMFNode(n).getDef():
@@ -382,7 +406,7 @@ while supervisor.step(timestep) != -1:
     if cam: drawImage(camera, colors, candidates)
     if can_num >= max_cans and not bool(total_cans):
         endGame()
-
+    endGame()
 ####################################################################################################################### 
 #######################################################################################################################
 #######################################################################################################################
