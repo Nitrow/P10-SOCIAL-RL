@@ -23,7 +23,7 @@ reason_dict = { 'colorError' : "Can't sort color",
                 'proximityError': "Can't reach in time"}
 
 # 50-33 takes 100sec
-max_cans = 2  # 20 is doable with 50 freq
+max_cans = 20  # 20 is doable with 50 freq
 freq = 50  # Less is more - 50 is doable
 
 # from pyutil import filereplace
@@ -32,7 +32,7 @@ freq = 50  # Less is more - 50 is doable
 #         f = "resources/" + file
 #         filereplace(f, textToSearch, textToReplace)
 
-# fileChanger("physics Physics", "physics DEF PHYSICS Physics")
+# fileChanger("mass 0.0001", "mass 0.1")
 
 def moveFingers(fingers, mode="open"):
 
@@ -107,7 +107,6 @@ def position_Checker():
     Returns true if all joints are 0.02 rad within the desired angles
     """
     return all([abs(sensors[i].getValue() - joints[i+1]) < 0.02 for i in range(len(sensors))])
-
 
 y = 0.88
 x = 3.17
@@ -400,13 +399,14 @@ while supervisor.step(timestep) != -1:
     if random.randrange(0,100) % freq == 0:
         if can_num < max_cans:
             generateCans()
+            #supervisor.getFromDef("PHYSICS").getField("mass").setSFFloat(0.1)
         #pass
     #print("Correct: {}\t Incorrect: {}\t Missed: {}\t Total: {}".format(correctSort, wrongSort, missed, correctSort-wrongSort-missed))
     #print(onConveyorRanked(total_cans))
     if cam: drawImage(camera, colors, candidates)
     if can_num >= max_cans and not bool(total_cans):
         endGame()
-    endGame()
+    #endGame()
 ####################################################################################################################### 
 #######################################################################################################################
 #######################################################################################################################
