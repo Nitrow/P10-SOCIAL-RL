@@ -17,6 +17,8 @@ random.seed(10)
 
 
 can_num = 0
+spawn_timer = 0
+spawn_limit = 15
 pos_choice = "000"
 
 reason_dict = { 'colorError' : "Can't sort color", 
@@ -497,9 +499,11 @@ while supervisor.step(timestep) != -1:
 
     prevSelection = selection
     print(can_num)
-    if random.randrange(0,100) % freq == 0:
+    spawn_timer += 1
+    if random.randrange(0,100) % freq == 0 and spawn_timer > spawn_limit:
         if can_num < max_cans:
             generateCans()
+            spawn_timer = 0
             #supervisor.getFromDef("PHYSICS").getField("mass").setSFFloat(0.1)
         #pass
     #print("Correct: {}\t Incorrect: {}\t Missed: {}\t Total: {}".format(correctSort, wrongSort, missed, correctSort-wrongSort-missed))
