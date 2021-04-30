@@ -427,7 +427,7 @@ def setPoseRobotUP():
              
 
 
-def setPoseRobotDOWN(target):
+def setPoseRobotDOWN():
 
             if round(target[2],2) == 0.56:
                     motors[0].setPosition(math.radians(5.4))
