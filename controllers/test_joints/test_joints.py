@@ -88,8 +88,8 @@ custom_up2 = [54.26511925573783, -120.00257244338015, -40.99851069260167, -106.9
 pos490_up = [52.20, -120, -41, -107, 91, 90]
 pos490_down = [52.20, -121, -80, -65.67, 90.86, 90]
 
-pos_up = pos490_up
-pos_down = pos490_down
+pos_up = custom_up2
+pos_down = custom_down2
 
 moveFingers(fingers, mode="open")
 #[supervisor.step(TIME_STEP) for x in range(10)]
