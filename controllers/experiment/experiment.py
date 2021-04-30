@@ -13,18 +13,18 @@ import math
 from ikpy.chain import Chain
 
 
-random.seed(1)
+random.seed(10)
 
 
-global can_num
 can_num = 0
+pos_choice = "000"
 
 reason_dict = { 'colorError' : "Can't sort color", 
                 'graspError': "Unable to grasp", 
                 'proximityError': "Can't reach in time"}
 
 # 50-33 takes 100sec
-max_cans = 2  # 20 is doable with 50 freq
+max_cans = 20  # 20 is doable with 50 freq
 freq = 50  # Less is more - 50 is doable
 
 # from pyutil import filereplace
@@ -51,7 +51,7 @@ def getFirstCan(candidates):
             return key
 
 
-def pickTargers(total_cans, choices=5, min_dist = 0.5):
+def pickTargets(total_cans, choices=5, min_dist = 0.5):
     """
     Gets five targets based on 3 criteria (assessing each can):
     1. Right color
@@ -74,8 +74,8 @@ def pickTargers(total_cans, choices=5, min_dist = 0.5):
         reason = ""
         candidates[key] = [val]
         candidates[key].append(supervisor.getFromId(key).getField("translation").getSFVec3f())
-        if candidates[key][1][0] > 1.3:
-            if val in ["green", "red"]:
+        if candidates[key][1][0] > 0.5:
+            if val[1] in ["green", "red"]:
                 if abs(supervisor.getFromId(key).getField("rotation").getSFRotation()[3]) > 0.3:
                     reason += "graspError"
                 else:
@@ -263,12 +263,14 @@ def countCans(missed, total_cans):
             else:
                 if y >= 0.8:
                     trueColor = can.getDef().split('_')[0].lower()
+                    total_cans[can_id] = []
+                    total_cans[can_id].append(trueColor)
                     if random.random() <= 0.7:
-                        total_cans[can_id] = trueColor
+                        total_cans[can_id].append(trueColor)
                     else:
                         options = ["yellow", "red", "green"]
                         options.remove(trueColor)
-                        total_cans[can_id] = random.choice(options)
+                        total_cans[can_id].append(random.choice(options))
                         #total_cans.append(can.getId())
     for item in toRemove:
         item.remove()
@@ -309,7 +311,8 @@ def drawImage(camera, colors, candidates):
         if obj_z > 0.6 or obj_z < 0.4 or reason == "":
             continue 
         # Assign color
-        color = colors[candidates[obj_id][0]]
+        color = colors[candidates[obj_id][0][1]] if reason != "graspError" else colors[candidates[obj_id][0][0]]
+        #If the error is "graspError" and the trueColor != original
         #print(color)
         color = np.rint(np.array(color)*255)
         size = np.array(obj.get_size_on_image()) + padding
@@ -346,11 +349,14 @@ def drawImage(camera, colors, candidates):
 
 
 def generateCans():
-    global can_num 
+    global can_num, pos_choice
     can_num += 1
-    can_distances = ["000", "999", "555", "535", "515", "495", "475", "455"]
+    #can_distances = ["000", "999", "555", "535", "515", "495", "475", "455"]
+    can_distances = ["000", "999", "556", "479", "506", "490", "530"]
+    can_distances = list(filter(lambda a: a != pos_choice, can_distances))
     can_colors = ["green", "yellow", "red"]
-    can = "resources/" + random.choice(can_colors) + "_can_" + random.choice(can_distances) + ".wbo"
+    pos_choice = random.choice(can_distances)
+    can = "resources/" + random.choice(can_colors) + "_can_" + pos_choice + ".wbo"
     root_children.importMFNode(-1, can)
 
 
@@ -461,7 +467,7 @@ def setPoseRobotDOWN():
 
 while supervisor.step(timestep) != -1:
     total_cans, missed = countCans(missed, total_cans)
-    candidates = pickTargers(total_cans, 3)
+    candidates = pickTargets(total_cans, 3)
     #print(total_cans)
     selection = supervisor.getSelected()
     selectionName = selection.getDef() if selection else ""
@@ -490,7 +496,7 @@ while supervisor.step(timestep) != -1:
             missed += 1
 
     prevSelection = selection
-    
+    print(can_num)
     if random.randrange(0,100) % freq == 0:
         if can_num < max_cans:
             generateCans()
