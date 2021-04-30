@@ -81,8 +81,12 @@ pos535_up = [26] + pos555_up[1:]
 custom_down = [44.36, -124.12, -85.16, -59, 91.49, 90]
 custom_up = [44.35, -119.60, -42.43, -106.27, 91.43, 90]
 
-pos_up = custom_up
-pos_down = custom_down
+
+custom_down2 = [47.25, -122.97, -83.96, -61.36, 91.49, 90]
+custom_up2 = [47.25, -119.60, -42.43, -106.27, 91.43, 90]
+
+pos_up = custom_up2
+pos_down = custom_down2
 
 moveFingers(fingers, mode="open")
 #[supervisor.step(TIME_STEP) for x in range(10)]
