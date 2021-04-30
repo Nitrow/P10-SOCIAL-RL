@@ -353,7 +353,7 @@ def generateCans():
     can_num += 1
     #can_distances = ["000", "999", "555", "535", "515", "495", "475", "455"]
     can_distances = ["000", "999", "556", "479", "506", "490", "530"]
-    can_distances = list(filter(lambda a: a != pos_choice, can_distances))
+    can_distances.remove(pos_choice)
     can_colors = ["green", "yellow", "red"]
     pos_choice = random.choice(can_distances)
     can = "resources/" + random.choice(can_colors) + "_can_" + pos_choice + ".wbo"
