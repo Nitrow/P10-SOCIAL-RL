@@ -28,6 +28,10 @@ reason_dict = { 'colorError' : "Can't sort color",
 max_cans = 20  # 20 is doable with 50 freq
 freq = 50  # Less is more - 50 is doable
 
+###########################################################################
+###########################  Utility functions  ###########################
+
+## Only used to change the proto files
 # from pyutil import filereplace
 # def fileChanger(textToSearch, textToReplace):
 #     for file in os.listdir("resources"):
@@ -35,183 +39,6 @@ freq = 50  # Less is more - 50 is doable
 #         filereplace(f, textToSearch, textToReplace)
 
 # fileChanger("mass 0.0001", "mass 0.1")
-
-def moveFingers(fingers, mode="open"):
-
-    if mode == "open":
-        fingers[0].setPosition(0.04)
-        fingers[1].setPosition(0.04)
-    elif mode == "close":
-        fingers[0].setPosition(0)
-        fingers[1].setPosition(0)
-
-
-def getFirstCan(candidates):
-    for key, val in candidates.items():
-        if val[2] == '1':
-            return key
-
-
-def pickTargets(total_cans, choices=5, min_dist = 0.5):
-    """
-    Gets five targets based on 3 criteria (assessing each can):
-    1. Right color
-    2. Furthest on the conveyor belt
-    3. Right pose (graspable)
-    4. Closeness to other candidate (can't make it in time)
-
-    Returns:
-        A dictionary with the IDs, where each ID contains:
-            1. Perceived colour of the can
-            2. Position of the can
-            3. Additional text (explanation - if applicable)
-    """
-
-    # Check if yellow or green
-    candidates = {}
-    top5_dists = []
-    top5_keys = []
-    for key, val in total_cans.items():
-        reason = ""
-        candidates[key] = [val]
-        candidates[key].append(supervisor.getFromId(key).getField("translation").getSFVec3f())
-        if candidates[key][1][0] > 0.5:
-            if val[1] in ["green", "red"]:
-                if abs(supervisor.getFromId(key).getField("rotation").getSFRotation()[3]) > 0.3:
-                    reason += "graspError"
-                else:
-                    top5_keys.append(key)
-                    top5_dists.append(candidates[key][1][0])
-            else:
-                reason += "colorError"
-
-        candidates[key].append(reason)
-    #top_choices = sorted(zip(top5_dists, top5_keys), key=lambda x: x[1])[:choices]
-
-    sorted_cans = sorted(zip(top5_dists, top5_keys), key=lambda x: x[1])
-    
-    top_choices = []
-
-    for i in range(len(sorted_cans)):
-        # we take the first one and last one always
-        if i == 0:
-            top_choices.append(sorted_cans[i])
-        # Check distance to next can
-        else:
-            if abs(top_choices[-1][0] - sorted_cans[i][0]) <= min_dist:
-                candidates[sorted_cans[i][1]][2] = "proximityError"
-            else:
-                top_choices.append(sorted_cans[i])
-        if len(top_choices) == choices:
-            break
-    for i in range(len(top_choices)):
-        candidates[top_choices[i][1]][2] = str(i+1)
-
-    return candidates
-
-
-def position_Checker():
-    """
-    Returns true if all joints are 0.02 rad within the desired angles
-    """
-    return all([abs(sensors[i].getValue() - joints[i+1]) < 0.02 for i in range(len(sensors))])
-
-y = 0.88
-x = 3.17
-
-# If you want the camera image
-cam = True
-
-supervisor = Supervisor()
-robot = supervisor.getFromDef("UR3")
-
-# get the time step of the current world.
-timestep = int(supervisor.getBasicTimeStep())
-#if cam: 
-#    cv2.startWindowThread()
-#    cv2.namedWindow("preview")
-padding = np.array([10, 10])
-camera = Camera("camera")
-camera.enable(timestep)
-camera.recognitionEnable(timestep)
-#display = supervisor.getDevice("display_robot")
-display_explanation = supervisor.getDevice("display_explanation")
-
-# Make the display transparent
-# display_score = supervisor.getDevice("display_score")
-# display_score.setOpacity(1)
-# display_score.setAlpha(0)
-# display_score.fillRectangle(0, 0, display_score.getWidth(), display_score.getHeight())
-
-width = camera.getWidth()
-height = camera.getHeight()
-# mouse = Mouse()
-# mouse.enable(timestep)
-# mouse.enable3dPosition()
-colors = {"yellow" : [0.309804, 0.913725, 1.0], "red" : [0.0, 0.0, 1.0], "green" : [0.0, 1.0, 0.0]}
-
-
-
-selection = None
-prevSelection = None
-canSelection = None
-can_height = 0.85
-selectionName = None
-canSelectionName = None
-
-total_cans = {}
-
-
-missed = 0
-correctSort = 0
-wrongSort = 0
-
-
-
-joint_names = ['shoulder_pan_joint',
-                'shoulder_lift_joint',
-                'elbow_joint',
-                'wrist_1_joint',
-                'wrist_2_joint',
-                'wrist_3_joint']
-        
-finger_names = ['right_finger', 'left_finger']                
-motors = [0] * len(joint_names)
-sensors = [0] * len(joint_names)
-fingers = [0] * len(finger_names)
-sensor_fingers = [0] * len(finger_names)
-
-for i in range(len(joint_names)):  
-    motors[i] = supervisor.getDevice(joint_names[i])   
-    
-    sensors[i] = supervisor.getDevice(joint_names[i] + '_sensor')
-    sensors[i].enable(timestep)
-    #motors[i].setPosition(float('inf'))
-    motors[i].setVelocity(3.14)                
-motors[0].setVelocity(1.5)         
-for i in range(len(finger_names)):  
-    fingers[i] = supervisor.getDevice(finger_names[i])
-    sensor_fingers[i] = supervisor.getDevice(finger_names[i] + '_sensor')
-    sensor_fingers[i].enable(timestep)
-
-distance_sensor = supervisor.getDevice("distance_sensor1") 
-distance_sensor.enable(timestep)  
-
-my_chain = ikpy.chain.Chain.from_urdf_file("resources/robot2.urdf")      
-
-
-prepare_grasp = True
-go_to_bucket = False
-prepare_grap2 = False
-go_to_bucket2 = False
-drop = False
-
-candidates = {}
-
-moveFingers(fingers) 
-
-
-root_children = supervisor.getRoot().getField("children")
 
 
 def displayScore(display, correct, incorrect, missed):
@@ -299,12 +126,15 @@ def drawImage(camera, colors, candidates):
     """
     Displays the image either in a new window, or on the Display
     """
+    global crate_pos_img
     cameraData = camera.getImage()
     image = np.frombuffer(cameraData, np.uint8).reshape((camera.getHeight(), camera.getWidth(), 4))
+
     for obj in camera.getRecognitionObjects():
         # Get the id of the object
         obj_id = obj.get_id()
         if obj_id not in candidates.keys():
+            #print(supervisor.getFromId(obj_id).getDef(), obj.get_position_on_image())
             continue
         reason = candidates[obj_id][2]
         # Check if the object is on the conveyor or not
@@ -312,7 +142,8 @@ def drawImage(camera, colors, candidates):
         if obj_z > 0.6 or obj_z < 0.4 or reason == "":
             continue 
         # Assign color
-        color = colors[candidates[obj_id][0][1]] if reason != "graspError" else colors[candidates[obj_id][0][0]]
+        perceivedColor = candidates[obj_id][0][1]
+        color = colors[perceivedColor] if reason != "graspError" else colors[candidates[obj_id][0][0]]
         #If the error is "graspError" and the trueColor != original
         #print(color)
         color = np.rint(np.array(color)*255)
@@ -328,7 +159,9 @@ def drawImage(camera, colors, candidates):
         font = cv2.FONT_HERSHEY_SIMPLEX
         if reason.isdigit():
             image = cv2.rectangle(image, tuple(start_point), tuple(end_point), tuple(color), thickness)
-            crate_loc = end_point
+            end_point = crate_pos_img["GREEN_ROBOT_CRATE"] if perceivedColor == "green" else crate_pos_img["RED_ROBOT_CRATE"]
+            print(perceivedColor)
+            start_point = np.array([int(n) for n in obj.get_position_on_image()])
             image = cv2.arrowedLine(image, tuple(start_point), tuple(end_point), tuple(color), thickness)
             start_point[1] -= 20
             text = reason
@@ -369,17 +202,6 @@ def endGame():
     supervisor.step(64)
     supervisor.simulationSetMode(0)
 
-
-def changeMass(node, mass):
-    node_children = node.getField("children")
-    node_children_count = node_children.getCount()
-    #print(node_children_count)
-    for n in range(node_children_count):
-        print(node_children.getMFNode(n).getDef())
-        if "PHYSICS" in node_children.getMFNode(n).getDef():
-            n.getField("mass").setSFFloat(mass)
-            break
-
 def setPoseRobot():
     motors[1].setPosition(-0.44509)
     motors[2].setPosition(0)
@@ -391,11 +213,193 @@ def setPoseRobot():
             position_of_can = val[1]
             print(math.radians(math.acos(position_of_can[2])))
             motors[0].setPosition(math.acos(position_of_can[2]))
-        
-    
 
+
+def moveFingers(fingers, mode="open"):
+
+    if mode == "open":
+        fingers[0].setPosition(0.04)
+        fingers[1].setPosition(0.04)
+    elif mode == "close":
+        fingers[0].setPosition(0)
+        fingers[1].setPosition(0)
+
+
+def getFirstCan(candidates):
+    for key, val in candidates.items():
+        if val[2] == '1':
+            return key
+
+
+def pickTargets(total_cans, choices=5, min_dist = 0.5):
+    """
+    Gets five targets based on 3 criteria (assessing each can):
+    1. Right color
+    2. Furthest on the conveyor belt
+    3. Right pose (graspable)
+    4. Closeness to other candidate (can't make it in time)
+
+    Returns:
+        A dictionary with the IDs, where each ID contains:
+            1. Perceived colour of the can
+            2. Position of the can
+            3. Additional text (explanation - if applicable)
+    """
+
+    # Check if yellow or green
+    candidates = {}
+    top5_dists = []
+    top5_keys = []
+    for key, val in total_cans.items():
+        reason = ""
+        candidates[key] = [val]
+        candidates[key].append(supervisor.getFromId(key).getField("translation").getSFVec3f())
+        if candidates[key][1][0] > 0.5:
+            if val[1] in ["green", "red"]:
+                if abs(supervisor.getFromId(key).getField("rotation").getSFRotation()[3]) > 0.3:
+                    reason += "graspError"
+                else:
+                    top5_keys.append(key)
+                    top5_dists.append(candidates[key][1][0])
+            else:
+                reason += "colorError"
+
+        candidates[key].append(reason)
+    #top_choices = sorted(zip(top5_dists, top5_keys), key=lambda x: x[1])[:choices]
+
+    sorted_cans = sorted(zip(top5_dists, top5_keys), key=lambda x: x[1])
+    
+    top_choices = []
+
+    for i in range(len(sorted_cans)):
+        # we take the first one and last one always
+        if i == 0:
+            top_choices.append(sorted_cans[i])
+        # Check distance to next can
+        else:
+            if abs(top_choices[-1][0] - sorted_cans[i][0]) <= min_dist:
+                candidates[sorted_cans[i][1]][2] = "proximityError"
+            else:
+                top_choices.append(sorted_cans[i])
+        if len(top_choices) == choices:
+            break
+    for i in range(len(top_choices)):
+        candidates[top_choices[i][1]][2] = str(i+1)
+
+    return candidates
+
+
+def position_Checker():
+    """
+    Returns true if all joints are 0.02 rad within the desired angles
+    """
+    return all([abs(sensors[i].getValue() - joints[i+1]) < 0.02 for i in range(len(sensors))])
+
+
+def tryGetCratePos():
+    global crate_pos_img
+    for obj in camera.getRecognitionObjects():
+        obj_name = supervisor.getFromId(obj.get_id()).getDef()
+        if obj_name == "RED_ROBOT_CRATE":
+            crate_pos_img["RED_ROBOT_CRATE"] = obj.get_position_on_image()
+        elif obj_name == "GREEN_ROBOT_CRATE":
+            crate_pos_img["GREEN_ROBOT_CRATE"] = obj.get_position_on_image()
+    #print("Trying")
+
+
+###########################################################################
+###########################  Global variables   ###########################
+
+y = 0.88
+x = 3.17
+
+
+cam = True
+
+supervisor = Supervisor()
+robot = supervisor.getFromDef("UR3")
+
+timestep = int(supervisor.getBasicTimeStep())
+
+padding = np.array([10, 10])
+camera = Camera("camera")
+camera.enable(timestep)
+camera.recognitionEnable(timestep)
+
+display_explanation = supervisor.getDevice("display_explanation")
+
+width = camera.getWidth()
+height = camera.getHeight()
+
+colors = {"yellow" : [0.309804, 0.913725, 1.0], "red" : [0.0, 0.0, 1.0], "green" : [0.0, 1.0, 0.0]}
+
+
+
+selection = None
+prevSelection = None
+canSelection = None
+can_height = 0.85
+selectionName = None
+canSelectionName = None
+
+total_cans = {}
+# Crate position on the recognition image
+crate_pos_img = {"RED_ROBOT_CRATE" : [], "GREEN_ROBOT_CRATE" : []}
+
+missed = 0
+correctSort = 0
+wrongSort = 0
+
+joint_names = ['shoulder_pan_joint',
+                'shoulder_lift_joint',
+                'elbow_joint',
+                'wrist_1_joint',
+                'wrist_2_joint',
+                'wrist_3_joint']
+        
+finger_names = ['right_finger', 'left_finger']                
+motors = [0] * len(joint_names)
+sensors = [0] * len(joint_names)
+fingers = [0] * len(finger_names)
+sensor_fingers = [0] * len(finger_names)
+
+for i in range(len(joint_names)):  
+    motors[i] = supervisor.getDevice(joint_names[i])   
+    
+    sensors[i] = supervisor.getDevice(joint_names[i] + '_sensor')
+    sensors[i].enable(timestep)
+    #motors[i].setPosition(float('inf'))
+    motors[i].setVelocity(3.14)                
+motors[0].setVelocity(1.5)         
+for i in range(len(finger_names)):  
+    fingers[i] = supervisor.getDevice(finger_names[i])
+    sensor_fingers[i] = supervisor.getDevice(finger_names[i] + '_sensor')
+    sensor_fingers[i].enable(timestep)
+
+distance_sensor = supervisor.getDevice("distance_sensor1") 
+distance_sensor.enable(timestep)  
+
+my_chain = ikpy.chain.Chain.from_urdf_file("resources/robot2.urdf")      
+
+
+prepare_grasp = True
+go_to_bucket = False
+prepare_grap2 = False
+go_to_bucket2 = False
+drop = False
+
+candidates = {}
+
+moveFingers(fingers) 
+
+
+root_children = supervisor.getRoot().getField("children")
+
+################################################################
+#######################  Main Loop   ###########################
 
 while supervisor.step(timestep) != -1:
+    if not bool(crate_pos_img["GREEN_ROBOT_CRATE"]): tryGetCratePos()
     total_cans, missed = countCans(missed, total_cans)
     candidates = pickTargets(total_cans, 3)
     #print(total_cans)
@@ -437,9 +441,6 @@ while supervisor.step(timestep) != -1:
     if cam: drawImage(camera, colors, candidates)
     if can_num >= max_cans and not bool(total_cans):
         endGame()
-####################################################################################################################### 
-#######################################################################################################################
-#######################################################################################################################
 
     # if prepare_grasp == True and bool(total_cans):
 
