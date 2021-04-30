@@ -366,17 +366,6 @@ def endGame():
     supervisor.step(64)
     supervisor.simulationSetMode(0)
 
-
-def changeMass(node, mass):
-    node_children = node.getField("children")
-    node_children_count = node_children.getCount()
-    #print(node_children_count)
-    for n in range(node_children_count):
-        print(node_children.getMFNode(n).getDef())
-        if "PHYSICS" in node_children.getMFNode(n).getDef():
-            n.getField("mass").setSFFloat(mass)
-            break
-
 def setPoseRobotUP():
 
     for key, val in candidates.items():
@@ -437,7 +426,7 @@ def setPoseRobotDOWN():
                     motors[4].setPosition(math.radians(91))
                     motors[5].setPosition(math.radians(90))
             elif round(position_of_can[2],2) == 0.53:
-                    motors[0].setPosition(math.radians(41.19)
+                    motors[0].setPosition(math.radians(41.19))
                     motors[1].setPosition(math.radians(-120.51))
                     motors[2].setPosition(math.radians(-78.88))
                     motors[3].setPosition(math.radians(-68.88))
@@ -483,7 +472,6 @@ while supervisor.step(timestep) != -1:
         new_position = selection.getField("translation").getSFVec3f()
         new_position[1] = can_height
         canSelection.getField("translation").setSFVec3f(new_position)
-        changeMass(canSelection, 3)
         if selectionColor == canColor: correctSort += 1
         else: wrongSort += 1 
         del total_cans[canSelection.getId()]
