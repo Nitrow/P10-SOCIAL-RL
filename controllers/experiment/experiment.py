@@ -383,15 +383,32 @@ def setPoseRobotUP():
                     motors[3].setPosition(math.radians(-107))
                     motors[4].setPosition(math.radians(91))
                     motors[5].setPosition(math.radians(90))
-            if round(position_of_can[2],2) == 0.51:
+            elif round(position_of_can[2],2) == 0.53:
+                    motors[0].setPosition(math.radians(41.25))
+                    motors[1].setPosition(math.radians(-120))
+                    motors[2].setPosition(math.radians(-40.99))
+                    motors[3].setPosition(math.radians(-106.99))
+                    motors[4].setPosition(math.radians(91))
+                    motors[5].setPosition(math.radians(90))          
+            
+            
+            elif round(position_of_can[2],2) == 0.51:
                     motors[0].setPosition(math.radians(44.35))
                     motors[1].setPosition(math.radians(-119.60))
                     motors[2].setPosition(math.radians(-42.43))
                     motors[3].setPosition(math.radians(-106.27))
                     motors[4].setPosition(math.radians(91.43))
-                    motors[5].setPosition(math.radians(90))  
+                    motors[5].setPosition(math.radians(90)) 
                     
-            if round(position_of_can[2],2) == 0.48:
+            elif round(position_of_can[2],2) == 0.49:
+                    motors[0].setPosition(math.radians(52.20))
+                    motors[1].setPosition(math.radians(-121))
+                    motors[2].setPosition(math.radians(-80))
+                    motors[3].setPosition(math.radians(-65.67))
+                    motors[4].setPosition(math.radians(90.86))
+                    motors[5].setPosition(math.radians(90))    
+                    
+            elif round(position_of_can[2],2) == 0.48:
                     motors[0].setPosition(math.radians(54.26))
                     motors[1].setPosition(math.radians(-120))
                     motors[2].setPosition(math.radians(40.99))
@@ -413,14 +430,28 @@ def setPoseRobotDOWN():
                     motors[3].setPosition(math.radians(-59))
                     motors[4].setPosition(math.radians(91))
                     motors[5].setPosition(math.radians(90))
-            if round(position_of_can[2],2) == 0.53:
+            elif round(position_of_can[2],2) == 0.53:
+                    motors[0].setPosition(math.radians(41.19)
+                    motors[1].setPosition(math.radians(-120.51))
+                    motors[2].setPosition(math.radians(-78.88))
+                    motors[3].setPosition(math.radians(-68.88))
+                    motors[4].setPosition(math.radians(91.26))
+                    motors[5].setPosition(math.radians(90))  
+            elif round(position_of_can[2],2) == 0.51:
                     motors[0].setPosition(math.radians(44.36))
                     motors[1].setPosition(math.radians(-124.12))
                     motors[2].setPosition(math.radians(-85.16))
                     motors[3].setPosition(math.radians(-59))
                     motors[4].setPosition(math.radians(91.49))
-                    motors[5].setPosition(math.radians(90))    
-            if round(position_of_can[2],2) == 0.48:
+                    motors[5].setPosition(math.radians(90))  
+            elif round(position_of_can[2],2) == 0.49:
+                    motors[0].setPosition(math.radians(52.20))
+                    motors[1].setPosition(math.radians(-120))
+                    motors[2].setPosition(math.radians(-41))
+                    motors[3].setPosition(math.radians(-107))
+                    motors[4].setPosition(math.radians(91))
+                    motors[5].setPosition(math.radians(90))     
+            elif round(position_of_can[2],2) == 0.48:
                     motors[0].setPosition(math.radians(54.12))
                     motors[1].setPosition(math.radians(-121.52))
                     motors[2].setPosition(math.radians(-81.19))

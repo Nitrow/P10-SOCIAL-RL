@@ -74,8 +74,8 @@ for i in range(len(joint_names)):
 pos555_down = [5.4, -124, -85, -59, 91, 90]
 pos555_up = [5.4, -120, -41, -107, 91, 90]
 
-pos535_down = [26] + pos555_down[1:]
-pos535_up = [26] + pos555_up[1:]
+pos530_down = [41.19, -120.51, -78.88, -68.88, 91.26, 90] 
+pos530_up = [41.25296124941927, -120.00257244338015, -40.99851069260167, -106.99872232509098, 91.000021811653, 90]
 
 
 custom_down = [44.36, -124.12, -85.16, -59, 91.49, 90]
@@ -85,8 +85,11 @@ custom_up = [44.35, -119.60, -42.43, -106.27, 91.43, 90]
 custom_down2 = [54.12, -121.52, -81.19, -65.69, 91.09, 90]
 custom_up2 = [54.26511925573783, -120.00257244338015, -40.99851069260167, -106.99872232509098, 91.000021811653, 90]
 
-pos_up = custom_up2
-pos_down = custom_down2
+pos490_up = [52.20, -120, -41, -107, 91, 90]
+pos490_down = [52.20, -121, -80, -65.67, 90.86, 90]
+
+pos_up = pos490_up
+pos_down = pos490_down
 
 moveFingers(fingers, mode="open")
 #[supervisor.step(TIME_STEP) for x in range(10)]
@@ -104,7 +107,7 @@ set_joints(pos_up, motors, joint_names)
 
 
 
-print(math.degrees(0.947105))
+print(math.degrees(0.91))
 print(math.degrees(-2.09444))
 print(math.degrees(-0.715559))
 print(math.degrees(-1.86748))
