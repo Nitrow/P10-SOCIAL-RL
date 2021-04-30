@@ -82,8 +82,8 @@ custom_down = [44.36, -124.12, -85.16, -59, 91.49, 90]
 custom_up = [44.35, -119.60, -42.43, -106.27, 91.43, 90]
 
 
-custom_down2 = [47.25, -122.97, -83.96, -61.36, 91.49, 90]
-custom_up2 = [47.25, -119.60, -42.43, -106.27, 91.43, 90]
+custom_down2 = [54.12, -121.52, -81.19, -65.69, 91.09, 90]
+custom_up2 = [54.26511925573783, -120.00257244338015, -40.99851069260167, -106.99872232509098, 91.000021811653, 90]
 
 pos_up = custom_up2
 pos_down = custom_down2
@@ -100,3 +100,12 @@ moveFingers(fingers, mode="close")
 #[supervisor.step(TIME_STEP) for x in range(10)] 
 set_joints(pos_up, motors, joint_names)
 #[supervisor.step(TIME_STEP) for x in range(10)] 
+
+
+
+
+print(math.degrees(0.947105))
+print(math.degrees(-2.09444))
+print(math.degrees(-0.715559))
+print(math.degrees(-1.86748))
+print(math.degrees(1.58825))

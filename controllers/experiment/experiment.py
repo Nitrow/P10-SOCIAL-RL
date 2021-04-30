@@ -371,20 +371,62 @@ def changeMass(node, mass):
             n.getField("mass").setSFFloat(mass)
             break
 
-def setPoseRobot():
-    motors[1].setPosition(-0.44509)
-    motors[2].setPosition(0)
-    motors[3].setPosition(-1.12585)
-    motors[4].setPosition(-1.5708)
-    motors[5].setPosition(0)
+def setPoseRobotUP():
+
     for key, val in candidates.items():
         if val[2] == '1':
             position_of_can = val[1]
-            print(math.radians(math.acos(position_of_can[2])))
-            motors[0].setPosition(math.acos(position_of_can[2]))
-        
-    
+            if round(position_of_can[2],2) == 0.57:
+                    motors[0].setPosition(math.radians(5.4))
+                    motors[1].setPosition(math.radians(-120))
+                    motors[2].setPosition(math.radians(-41))
+                    motors[3].setPosition(math.radians(-107))
+                    motors[4].setPosition(math.radians(91))
+                    motors[5].setPosition(math.radians(90))
+            if round(position_of_can[2],2) == 0.51:
+                    motors[0].setPosition(math.radians(44.35))
+                    motors[1].setPosition(math.radians(-119.60))
+                    motors[2].setPosition(math.radians(-42.43))
+                    motors[3].setPosition(math.radians(-106.27))
+                    motors[4].setPosition(math.radians(91.43))
+                    motors[5].setPosition(math.radians(90))  
+                    
+            if round(position_of_can[2],2) == 0.48:
+                    motors[0].setPosition(math.radians(54.26))
+                    motors[1].setPosition(math.radians(-120))
+                    motors[2].setPosition(math.radians(40.99))
+                    motors[3].setPosition(math.radians(-106.99))
+                    motors[4].setPosition(math.radians(91))
+                    motors[5].setPosition(math.radians(90))        
 
+
+
+def setPoseRobotDOWN():
+
+    for key, val in candidates.items():
+        if val[2] == '1':
+            position_of_can = val[1]
+            if round(position_of_can[2],2) == 0.57:
+                    motors[0].setPosition(math.radians(5.4))
+                    motors[1].setPosition(math.radians(-124))
+                    motors[2].setPosition(math.radians(-85))
+                    motors[3].setPosition(math.radians(-59))
+                    motors[4].setPosition(math.radians(91))
+                    motors[5].setPosition(math.radians(90))
+            if round(position_of_can[2],2) == 0.53:
+                    motors[0].setPosition(math.radians(44.36))
+                    motors[1].setPosition(math.radians(-124.12))
+                    motors[2].setPosition(math.radians(-85.16))
+                    motors[3].setPosition(math.radians(-59))
+                    motors[4].setPosition(math.radians(91.49))
+                    motors[5].setPosition(math.radians(90))    
+            if round(position_of_can[2],2) == 0.48:
+                    motors[0].setPosition(math.radians(54.12))
+                    motors[1].setPosition(math.radians(-121.52))
+                    motors[2].setPosition(math.radians(-81.19))
+                    motors[3].setPosition(math.radians(-65.69))
+                    motors[4].setPosition(math.radians(91))
+                    motors[5].setPosition(math.radians(90))      
 
 while supervisor.step(timestep) != -1:
     total_cans, missed = countCans(missed, total_cans)
@@ -432,79 +474,80 @@ while supervisor.step(timestep) != -1:
 #######################################################################################################################
 #######################################################################################################################
 
-    # if prepare_grasp == True and bool(total_cans):
+    if prepare_grasp == True and bool(total_cans):
 
-    #      index = getFirstCan(candidates) #####SETTING THE CAN, CAN BE REPALCED BY AN ACTUAL ID#####
-    #      goal = supervisor.getFromId(index).getField("translation")
-    #      target = np.array(goal.getSFVec3f())
+         index = getFirstCan(candidates) #####SETTING THE CAN, CAN BE REPALCED BY AN ACTUAL ID#####
+         goal = supervisor.getFromId(index).getField("translation")
+         target = np.array(goal.getSFVec3f())
          
          
          
-    #      setPoseRobot()
+         setPoseRobotUP()
          
-    #      #target_position = [target[2], 0.167, target[1]-0.48]
-    #      #target_position = [target[2], 0.167, target[1]]
+         #target_position = [target[2], 0.167, target[1]-0.48]
+         #target_position = [target[2], 0.167, target[1]]
     
-    #      #orientation_axis = "Y"
-    #      #target_orientation = [0, 0, -1]
+         #orientation_axis = "Y"
+         #target_orientation = [0, 0, -1]
         
-    #      #joints = my_chain.inverse_kinematics(target_position, target_orientation=target_orientation, orientation_mode=orientation_axis)
+         #joints = my_chain.inverse_kinematics(target_position, target_orientation=target_orientation, orientation_mode=orientation_axis)
         
-    #      #for i in range(len(joint_names)):
-    #      #    motors[i].setPosition(joints[i+1])    
-    #      #print(joints)
-    #      #prepare_grasp = not position_Checker()
-    #      #print(distance_sensor.getValue())
-    #      prepare_grasp = False
-
-    # if  prepare_grasp == False and distance_sensor.getValue() < 800 and target[0] < 0.19 :
+         #for i in range(len(joint_names)):
+         #    motors[i].setPosition(joints[i+1])    
+         #print(joints)
+         #prepare_grasp = not position_Checker()
+         #print(distance_sensor.getValue())
+         #prepare_grasp = False
          
-    #      for i in range(len(joint_names)):
-    #          motors[1].setPosition(0.15)    
+         print("lol")
+
+    if  prepare_grasp == False and distance_sensor.getValue() < 800 and target[0] < 0.19 :
+         
+         setPoseRobotDOWN()
        
-    #      prepare_grap2 = True        
+         prepare_grap2 = True        
 
-    # if  prepare_grap2 == True and distance_sensor.getValue() < 200:
+    if  prepare_grap2 == True and distance_sensor.getValue() < 200:
         
-    #      motors[1].setPosition(sensors[1].getValue())
+         motors[1].setPosition(sensors[1].getValue())
 
-    #      moveFingers(fingers, "close")
+         moveFingers(fingers, "close")
 
-    #      go_to_bucket = True        
-    #      prepare_grap2 = False
+         go_to_bucket = True        
+         prepare_grap2 = False
 
-    # if  go_to_bucket == True and go_to_bucket2 == False and sensor_fingers[0].getValue() < 0.012 or sensor_fingers[1].getValue() < 0.012:
+    if  go_to_bucket == True and go_to_bucket2 == False and sensor_fingers[0].getValue() < 0.012 or sensor_fingers[1].getValue() < 0.012:
 
-    #      for i in range(len(joint_names)):
-    #              motors[1].setPosition(-1)
+         for i in range(len(joint_names)):
+                 motors[1].setPosition(-1)
          
-    # if go_to_bucket == True and go_to_bucket2 == False and sensors[1].getValue()-0.2 < -1 < sensors[1].getValue()+0.2:
-    #              go_to_bucket2 = True    
-    #              go_to_bucket = False
+    if go_to_bucket == True and go_to_bucket2 == False and sensors[1].getValue()-0.2 < -1 < sensors[1].getValue()+0.2:
+                 go_to_bucket2 = True    
+                 go_to_bucket = False
     
     
     
-    # if go_to_bucket2 == True:
-    #       print(index)
-    #       go_to_bucket2 = False     
-    #       if total_cans[index] == "green":
-    #           for i in range(len(joint_names)):
-    #                   motors[0].setPosition(1.5)
-    #                   drop = True
+    if go_to_bucket2 == True:
+          print(index)
+          go_to_bucket2 = False     
+          if total_cans[index] == "green":
+              for i in range(len(joint_names)):
+                      motors[0].setPosition(1.5)
+                      drop = True
 
-    #       elif total_cans[index] == "red":
-    #           for i in range(len(joint_names)):
-    #                   motors[0].setPosition(-1.8)
-    #                   drop = True
+          elif total_cans[index] == "red":
+              for i in range(len(joint_names)):
+                      motors[0].setPosition(-1.8)
+                      drop = True
 
     
          
-    # if  drop == True and sensors[0].getValue()-0.01 < 1.5 < sensors[0].getValue()+0.01 or sensors[0].getValue()-0.01 < -1.8 < sensors[0].getValue()+0.01:
-    #     moveFingers(fingers, mode = "open") 
-    #     go_to_bucket2 == False
-    #     prepare_grasp = True
-    #     drop = False
-    # if bool(total_cans): 
-    #      goal = supervisor.getFromId(index).getField("translation")
-    #      target = np.array(goal.getSFVec3f())          
+    if  drop == True and sensors[0].getValue()-0.01 < 1.5 < sensors[0].getValue()+0.01 or sensors[0].getValue()-0.01 < -1.8 < sensors[0].getValue()+0.01:
+        moveFingers(fingers, mode = "open") 
+        go_to_bucket2 == False
+        prepare_grasp = True
+        drop = False
+    if bool(total_cans): 
+         goal = supervisor.getFromId(index).getField("translation")
+         target = np.array(goal.getSFVec3f())          
     
