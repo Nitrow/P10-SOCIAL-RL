@@ -26,7 +26,7 @@ reason_dict = { 'colorError' : "Can't sort color",
 
 # 50-33 takes 100sec
 max_cans = 20  # 20 is doable with 50 freq
-freq = 50  # Less is more - 50 is doable
+freq = 20  # Less is more - 50 is doable
 
 ###########################################################################
 ###########################  Utility functions  ###########################
@@ -417,7 +417,6 @@ while supervisor.step(timestep) != -1:
         new_position = selection.getField("translation").getSFVec3f()
         new_position[1] = can_height
         canSelection.getField("translation").setSFVec3f(new_position)
-        changeMass(canSelection, 3)
         if selectionColor == canColor: correctSort += 1
         else: wrongSort += 1 
         del total_cans[canSelection.getId()]
