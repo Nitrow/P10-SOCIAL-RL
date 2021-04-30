@@ -35,7 +35,7 @@ freq = 50  # Less is more - 50 is doable
 #         f = "resources/" + file
 #         filereplace(f, textToSearch, textToReplace)
 
-# fileChanger("mass 0.0001", "mass 0.1")
+# fileChanger("mass 0.1", "mass 0.35")
 
 def moveFingers(fingers, mode="open"):
 

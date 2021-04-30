@@ -48,7 +48,7 @@ DEF GREEN_CAN Solid {
   }
   physics DEF PHYSICS Physics {
     density -1
-    mass 0.1
+    mass 0.35
   }
   recognitionColors [
     0 1 0
