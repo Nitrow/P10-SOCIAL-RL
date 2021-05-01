@@ -77,7 +77,7 @@ def pickTargets(total_cans, choices=5, min_dist = 0.5):
         reason = ""
         candidates[key] = [val]
         candidates[key].append(supervisor.getFromId(key).getField("translation").getSFVec3f())
-        if candidates[key][1][0] > 0.9:
+        if candidates[key][1][0] > 0.5:
             if val[1] in ["green", "red"]:
                 if abs(supervisor.getFromId(key).getField("rotation").getSFRotation()[3]) > 0.3:
                     reason += "graspError"
@@ -190,7 +190,7 @@ for i in range(len(joint_names)):
     sensors[i].enable(timestep)
     #motors[i].setPosition(float('inf'))
     motors[i].setVelocity(3.14)                
-motors[0].setVelocity(1.5)         
+motors[0].setVelocity(3.14)         
 for i in range(len(finger_names)):  
     fingers[i] = supervisor.getDevice(finger_names[i])
     sensor_fingers[i] = supervisor.getDevice(finger_names[i] + '_sensor')
@@ -470,7 +470,6 @@ while supervisor.step(timestep) != -1:
             missed += 1
 
     prevSelection = selection
-    print(can_num)
     spawn_timer += 1
     if random.randrange(0,100) % freq == 0 and spawn_timer > spawn_limit:
         if can_num < max_cans:
@@ -489,10 +488,9 @@ while supervisor.step(timestep) != -1:
 
     if prepare_grasp == True and getFirstCan(candidates):
          
-         index2 = getFirstCan(candidates) #####SETTING THE CAN, CAN BE REPALCED BY AN ACTUAL ID#####
-         goal = supervisor.getFromId(index2).getField("translation")
+         index = getFirstCan(candidates) #####SETTING THE CAN, CAN BE REPALCED BY AN ACTUAL ID#####
+         goal = supervisor.getFromId(index).getField("translation")
          target = np.array(goal.getSFVec3f())
-         color = total_cans[index2]
          
          
         
@@ -521,7 +519,6 @@ while supervisor.step(timestep) != -1:
     
     if  prepare_grasp == False:
                  
-         print(target)
          if round(target[2],2) == 0.56 and round(target[0], 2) == -0.07 + 1.02:
                       
              setPoseRobotDOWN()
@@ -569,21 +566,19 @@ while supervisor.step(timestep) != -1:
     
     
     if go_to_bucket2 == True:
-          print(index2)
           go_to_bucket2 = False  
-          #color = total_cans[index]
-          if color[1] == "green":
+          
+          if total_cans[index][1] == "green":
               for i in range(len(joint_names)):
                       motors[0].setPosition(2.2)
                       drop = True
 
-          elif color[1] == "red":
+          elif total_cans[index][1] == "red":
               for i in range(len(joint_names)):
                       motors[0].setPosition(-2)
                       drop = True
 
-    
-    print(sensors[1].getValue())     
+       
     if  drop == True and sensors[0].getValue()-0.01 < 2.2 < sensors[0].getValue()+0.01 or sensors[0].getValue()-0.01 < -2 < sensors[0].getValue()+0.01:
         moveFingers(fingers, mode = "open") 
         
@@ -594,7 +589,7 @@ while supervisor.step(timestep) != -1:
         drop = False
     if getFirstCan(candidates):
     
-        if target[0] < 0.99:
-            index2 = getFirstCan(candidates)
-        goal = supervisor.getFromId(index2).getField("translation")
+        
+        index = getFirstCan(candidates)
+        goal = supervisor.getFromId(index).getField("translation")
         target = np.array(goal.getSFVec3f())
