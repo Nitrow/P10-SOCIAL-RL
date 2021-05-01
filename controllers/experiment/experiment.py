@@ -396,57 +396,47 @@ def setPoseRobotUP():
         if val[2] == '1':
             position_of_can = val[1]
             if round(position_of_can[2],2) == 0.56:
-                    jointsUP = posesUP[0]
-                    for i in range(len(jointsUP)):
-                        motors[i].setPosition(math.radians(jointsUP[i]))
+                    for i in range(6):
+                        motors[i].setPosition(math.radians(posesUP[0][i]))
              
             elif round(position_of_can[2],2) == 0.53:
-                    jointsUP = posesUP[1]
-                    for i in range(len(jointsUP)):
-                        motors[i].setPosition(math.radians(jointsUP[i]))         
+                    for i in range(6):
+                        motors[i].setPosition(math.radians(posesUP[1][i]))         
                          
             elif round(position_of_can[2],2) == 0.51:
-                    jointsUP = posesUP[2]
-                    for i in range(len(jointsUP)):
-                        motors[i].setPosition(math.radians(jointsUP[i]))
+                    for i in range(6):
+                        motors[i].setPosition(math.radians(posesUP[2][i]))
                      
             elif round(position_of_can[2],2) == 0.49:
-                    jointsUP = posesUP[3]
-                    for i in range(len(jointsUP)):
-                        motors[i].setPosition(math.radians(jointsUP[i]))  
+                    for i in range(6):
+                        motors[i].setPosition(math.radians(posesUP[3][i]))  
                                          
             elif round(position_of_can[2],2) == 0.48:
-                    jointsUP = posesUP[4]
-                    for i in range(len(jointsUP)):
-                        motors[i].setPosition(math.radians(jointsUP[i])) 
+                    for i in range(6):
+                        motors[i].setPosition(math.radians(posesUP[4][i])) 
       
             
 def setPoseRobotDOWN():
 
             if round(target[2],2) == 0.56:
-                    jointsDOWN = posesDOWN[0]
-                    for i in range(len(jointsDOWN)):
-                        motors[i].setPosition(math.radians(jointsDOWN[i]))
+                    for i in range(6):
+                        motors[i].setPosition(math.radians(posesDOWN[0][i]))
                         
             elif round(target[2],2) == 0.53:
-                    jointsDOWN = posesDOWN[1]
-                    for i in range(len(jointsDOWN)):
-                        motors[i].setPosition(math.radians(jointsDOWN[i]))
+                    for i in range(6):
+                        motors[i].setPosition(math.radians(posesDOWN[1][i]))
                         
             elif round(target[2],2) == 0.51:
-                    jointsDOWN = posesDOWN[2]
-                    for i in range(len(jointsDOWN)):
-                        motors[i].setPosition(math.radians(jointsDOWN[i]))
+                    for i in range(6):
+                        motors[i].setPosition(math.radians(posesDOWN[2][i]))
                          
             elif round(target[2],2) == 0.49:
-                    jointsDOWN = posesDOWN[3]
-                    for i in range(len(jointsDOWN)):
-                        motors[i].setPosition(math.radians(jointsDOWN[i]))  
+                    for i in range(6):
+                        motors[i].setPosition(math.radians(posesDOWN[3][i]))  
                      
             elif round(target[2],2) == 0.48:
-                    jointsDOWN = posesDOWN[4]
-                    for i in range(len(jointsDOWN)):
-                        motors[i].setPosition(math.radians(jointsDOWN[i]))
+                    for i in range(6):
+                        motors[i].setPosition(math.radians(posesDOWN[4][i]))
     
 
 while supervisor.step(timestep) != -1:
