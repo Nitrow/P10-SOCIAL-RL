@@ -3,7 +3,7 @@
 
 # You may need to import some classes of the controller module. Ex:
 #  from controller import Robot, Motor, DistanceSensor
-from controller import Robot, Camera, Supervisor, Display, MouseState, Mouse
+from controller import Robot, Camera, Supervisor, Display, Connector
 import numpy as np
 import cv2
 import random
@@ -35,7 +35,7 @@ freq = 50  # Less is more - 50 is doable
 #         f = "resources/" + file
 #         filereplace(f, textToSearch, textToReplace)
 
-# fileChanger("mass 0.1", "mass 0.35")
+# fileChanger('children [', 'children [    Connector {      translation 0 0.02 0      rotation -1 0 0 -3.137485307179586      model "can_grasp"      type "passive"      axisTolerance 3.14      rotationTolerance 3.14    }')
 
 def moveFingers(fingers, mode="open"):
 
@@ -79,7 +79,7 @@ def pickTargets(total_cans, choices=5, min_dist = 0.5):
         candidates[key].append(supervisor.getFromId(key).getField("translation").getSFVec3f())
         if candidates[key][1][0] > 0.5:
             if val[1] in ["green", "red"]:
-                if abs(supervisor.getFromId(key).getField("rotation").getSFRotation()[3]) > 0.3:
+                if abs(supervisor.getFromId(key).getField("rotation").getSFRotation()[3]) > 0.75:
                     reason += "graspError"
                 else:
                     top5_keys.append(key)
@@ -118,103 +118,6 @@ def position_Checker():
     """
     return all([abs(sensors[i].getValue() - joints[i+1]) < 0.02 for i in range(len(sensors))])
 
-y = 0.88
-x = 3.17
-
-# If you want the camera image
-cam = True
-
-supervisor = Supervisor()
-robot = supervisor.getFromDef("UR3")
-
-# get the time step of the current world.
-timestep = int(supervisor.getBasicTimeStep())
-#if cam: 
-#    cv2.startWindowThread()
-#    cv2.namedWindow("preview")
-padding = np.array([10, 10])
-camera = Camera("camera")
-camera.enable(timestep)
-camera.recognitionEnable(timestep)
-#display = supervisor.getDevice("display_robot")
-display_explanation = supervisor.getDevice("display_explanation")
-
-# Make the display transparent
-# display_score = supervisor.getDevice("display_score")
-# display_score.setOpacity(1)
-# display_score.setAlpha(0)
-# display_score.fillRectangle(0, 0, display_score.getWidth(), display_score.getHeight())
-
-width = camera.getWidth()
-height = camera.getHeight()
-# mouse = Mouse()
-# mouse.enable(timestep)
-# mouse.enable3dPosition()
-colors = {"yellow" : [0.309804, 0.913725, 1.0], "red" : [0.0, 0.0, 1.0], "green" : [0.0, 1.0, 0.0]}
-
-
-
-selection = None
-prevSelection = None
-canSelection = None
-can_height = 0.85
-selectionName = None
-canSelectionName = None
-
-total_cans = {}
-
-
-missed = 0
-correctSort = 0
-wrongSort = 0
-
-
-
-joint_names = ['shoulder_pan_joint',
-                'shoulder_lift_joint',
-                'elbow_joint',
-                'wrist_1_joint',
-                'wrist_2_joint',
-                'wrist_3_joint']
-        
-finger_names = ['right_finger', 'left_finger']                
-motors = [0] * len(joint_names)
-sensors = [0] * len(joint_names)
-fingers = [0] * len(finger_names)
-sensor_fingers = [0] * len(finger_names)
-
-for i in range(len(joint_names)):  
-    motors[i] = supervisor.getDevice(joint_names[i])   
-    
-    sensors[i] = supervisor.getDevice(joint_names[i] + '_sensor')
-    sensors[i].enable(timestep)
-    #motors[i].setPosition(float('inf'))
-    motors[i].setVelocity(3.14)                
-motors[0].setVelocity(3.14)         
-for i in range(len(finger_names)):  
-    fingers[i] = supervisor.getDevice(finger_names[i])
-    sensor_fingers[i] = supervisor.getDevice(finger_names[i] + '_sensor')
-    sensor_fingers[i].enable(timestep)
-
-distance_sensor = supervisor.getDevice("distance_sensor1") 
-distance_sensor.enable(timestep)  
-
-my_chain = ikpy.chain.Chain.from_urdf_file("resources/robot2.urdf")      
-
-
-prepare_grasp = True
-go_to_bucket = False
-prepare_grap2 = False
-go_to_bucket2 = False
-drop = False
-
-candidates = {}
-
-moveFingers(fingers) 
-
-
-root_children = supervisor.getRoot().getField("children")
-
 
 def displayScore(display, correct, incorrect, missed):
     h = int(display.getHeight() / 6)
@@ -246,7 +149,7 @@ def displayScore(display, correct, incorrect, missed):
     display.drawText("Total score:     {}".format(correct-incorrect-missed), marginW, x)
 
 
-def countCans(missed, total_cans):
+def countCans(missed, total_cans, candidates):
     toRemove = []
     root_children_n = root_children.getCount()
     for n in range(root_children_n):
@@ -261,7 +164,9 @@ def countCans(missed, total_cans):
                     toRemove.append(can)
                     del total_cans[can_id]
                 elif z > 0.6 or z < 0.4:
-                    del total_cans[can_id]
+                    # If it's the one being grabbed then don't delete it
+                    if candidates[can_id][2] != '1':
+                        del total_cans[can_id]
             # If the can is not in the list yet, we should add it
             else:
                 if y >= 0.8:
@@ -371,45 +276,15 @@ def endGame():
     
 
 def setPoseRobot(candidates, move_dic, index):
-    position_of_can = round(candidates[index][1][2], 2)
+    position_of_can = round(supervisor.getFromId(index).getField("translation").getSFVec3f()[2], 2)
     try:
         poses = move_down_dic[position_of_can]
         [motors[i].setPosition(math.radians(poses[i])) for i in range(len(poses))]
     except KeyError:
-        continue
-
-def changeMass(node, mass):
-    node_children = node.getField("children")
-    node_children_count = node_children.getCount()
-    #print(node_children_count)
-    for n in range(node_children_count):
-        print(node_children.getMFNode(n).getDef())
-        if "PHYSICS" in node_children.getMFNode(n).getDef():
-            n.getField("mass").setSFFloat(mass)
-            break
-move_down_dic = {0.57 : [5.4, -124, -85, -59, 91, 90],
-                 0.53 : [41.19, -120.51, -78.88, -68.88, 91.26, 90],
-                 0.51 : [44.36, -124.12, -85.16, -59, 91.49, 90],
-                 0.49 : [52.2, -120, -41, -107, 91, 90],
-                 0.48 : [54.12, -121.52, -81.19, -65.69, 91, 90]}
-
-posesUP = [[5.4, -120, -41, -107, 91, 90], [41.252, -120, -41, -107, 91, 90],
-    [44.35, -119.60, -42.43, -106.27, 91.43, 90], [52.20, -120, -41, -107, 91, 90], 
-    [54.2,-120, -41, -107, 91, 90]]
-move_up_dic = {  0.57 : [5.4, -120, -41, -107, 91, 90],
-                 0.53 : [41.25, -120, -40.99, -106.99, 91, 90],
-                 0.51 : [44.35, -119.60, -42.43, -106.27, 91.43, 90],
-                 0.49 : [52.2, -121, -80, -65.67, 90.86, 90],
-                 0.48 : [54.26, -120, 40.99, -106.99, 91, 90]}
-
-posesDOWN = [[5.4, -124, -85, -59, 91, 90], [41.19, -120.51, -78.88, -68.88, 91.26, 90],
-[44.36, -124.12, -85.16, -59, 91.49, 90], [52.20, -121, -80, -65.67, 90.86, 90],
-[54.12, -121.52, -81.19, -65.69, 91.09, 90]]
+        return
 
 
-
-def setPoseRobotUP():
-            
+def setPoseRobotUP():      
     for key, val in candidates.items():
         if val[2] == '1':
             position_of_can = val[1]
@@ -457,14 +332,139 @@ def setPoseRobotDOWN():
                         motors[i].setPosition(math.radians(posesDOWN[4][i]))
     
 
+
+
+y = 0.88
+x = 3.17
+
+# If you want the camera image
+cam = True
+
+supervisor = Supervisor()
+robot = supervisor.getFromDef("UR3")
+robot_connector = supervisor.getDevice("connector")
+# get the time step of the current world.
+timestep = int(supervisor.getBasicTimeStep())
+#if cam: 
+#    cv2.startWindowThread()
+#    cv2.namedWindow("preview")
+padding = np.array([10, 10])
+camera = Camera("camera")
+camera.enable(timestep)
+camera.recognitionEnable(timestep)
+#display = supervisor.getDevice("display_robot")
+display_explanation = supervisor.getDevice("display_explanation")
+
+# Make the display transparent
+# display_score = supervisor.getDevice("display_score")
+# display_score.setOpacity(1)
+# display_score.setAlpha(0)
+# display_score.fillRectangle(0, 0, display_score.getWidth(), display_score.getHeight())
+
+width = camera.getWidth()
+height = camera.getHeight()
+# mouse = Mouse()
+# mouse.enable(timestep)
+# mouse.enable3dPosition()
+colors = {"yellow" : [0.309804, 0.913725, 1.0], "red" : [0.0, 0.0, 1.0], "green" : [0.0, 1.0, 0.0]}
+
+
+
+selection = None
+prevSelection = None
+canSelection = None
+can_height = 0.85
+selectionName = None
+canSelectionName = None
+
+total_cans = {}
+
+
+missed = 0
+correctSort = 0
+wrongSort = 0
+
+
+
+joint_names = ['shoulder_pan_joint',
+                'shoulder_lift_joint',
+                'elbow_joint',
+                'wrist_1_joint',
+                'wrist_2_joint',
+                'wrist_3_joint']
+        
+finger_names = ['right_finger', 'left_finger']                
+motors = [0] * len(joint_names)
+sensors = [0] * len(joint_names)
+fingers = [0] * len(finger_names)
+sensor_fingers = [0] * len(finger_names)
+
+for i in range(len(joint_names)):  
+    motors[i] = supervisor.getDevice(joint_names[i])   
+    
+    sensors[i] = supervisor.getDevice(joint_names[i] + '_sensor')
+    sensors[i].enable(timestep)
+    #motors[i].setPosition(float('inf'))
+    motors[i].setVelocity(3.14)                
+motors[0].setVelocity(3.14)         
+for i in range(len(finger_names)):  
+    fingers[i] = supervisor.getDevice(finger_names[i])
+    sensor_fingers[i] = supervisor.getDevice(finger_names[i] + '_sensor')
+    sensor_fingers[i].enable(timestep)
+
+distance_sensor = supervisor.getDevice("distance_sensor1") 
+distance_sensor.enable(timestep)  
+
+my_chain = ikpy.chain.Chain.from_urdf_file("resources/robot2.urdf")      
+
+
+prepare_grasp = True
+go_to_bucket = False
+prepare_grap2 = False
+go_to_bucket2 = False
+drop = False
+
+move_down_dic = {0.57 : [5.4, -124, -85, -59, 91, 90],
+                 0.53 : [41.19, -120.51, -78.88, -68.88, 91.26, 90],
+                 0.51 : [44.36, -124.12, -85.16, -59, 91.49, 90],
+                 0.49 : [52.2, -120, -41, -107, 91, 90],
+                 0.48 : [54.12, -121.52, -81.19, -65.69, 91, 90]}
+
+posesUP =   [[5.4, -120, -41, -107, 91, 90],
+            [41.252, -120, -41, -107, 91, 90],
+            [44.35, -119.60, -42.43, -106.27, 91.43, 90],
+            [52.20, -120, -41, -107, 91, 90], 
+            [54.2,-120, -41, -107, 91, 90]]
+
+move_up_dic = {  0.57 : [5.4, -120, -41, -107, 91, 90],
+                 0.53 : [41.25, -120, -40.99, -106.99, 91, 90],
+                 0.51 : [44.35, -119.60, -42.43, -106.27, 91.43, 90],
+                 0.49 : [52.2, -121, -80, -65.67, 90.86, 90],
+                 0.48 : [54.26, -120, 40.99, -106.99, 91, 90]}
+
+posesDOWN = [[5.4, -124, -85, -59, 91, 90],
+            [41.19, -120.51, -78.88, -68.88, 91.26, 90],
+            [44.36, -124.12, -85.16, -59, 91.49, 90],
+            [52.20, -121, -80, -65.67, 90.86, 90],
+            [54.12, -121.52, -81.19, -65.69, 91.09, 90]]
+
+candidates = {}
+
+moveFingers(fingers) 
+
+
+root_children = supervisor.getRoot().getField("children")
+
+robot_connector = supervisor.getDevice("connector")
+robot_connector.enablePresence(timestep)
 while supervisor.step(timestep) != -1:
-    total_cans, missed = countCans(missed, total_cans)
+    total_cans, missed = countCans(missed, total_cans, candidates)
     candidates = pickTargets(total_cans, 3)
     #print(total_cans)
     selection = supervisor.getSelected()
     selectionName = selection.getDef() if selection else ""
     selectionColor = selectionName.split('_')[0]
-
+    print(robot_connector.getPresence())
     # for keys, vals in total_cans.items():
     #     print (keys, vals)
     if "CAN" in selectionName:
@@ -510,32 +510,12 @@ while supervisor.step(timestep) != -1:
          goal = supervisor.getFromId(index).getField("translation")
          target = np.array(goal.getSFVec3f())
          
-         setPoseRobot(candidates, move_up_dic, index)
-         
+         setPoseRobot(candidates, move_up_dic, index)     
         
          setPoseRobotUP()
          prepare_grasp = False
          
-         
-         
-         #target_position = [target[2], 0.167, target[1]-0.48]
-         #target_position = [target[2], 0.167, target[1]]
-    
-         #orientation_axis = "Y"
-         #target_orientation = [0, 0, -1]
-        
-         #joints = my_chain.inverse_kinematics(target_position, target_orientation=target_orientation, orientation_mode=orientation_axis)
-        
-         #for i in range(len(joint_names)):
-         #    motors[i].setPosition(joints[i+1])    
-         #print(joints)
-         #prepare_grasp = not position_Checker()
-         #print(distance_sensor.getValue())
 
-         
-         
-         
-    
     if  prepare_grasp == False:
                  
          if round(target[2],2) == 0.56 and round(target[0], 2) == -0.07 + 1.02:
@@ -562,17 +542,14 @@ while supervisor.step(timestep) != -1:
              setPoseRobotDOWN()
              prepare_grap2 = True              
          setPoseRobot(candidates, move_down_dic, index)
-       
          prepare_grap2 = True        
 
-    if  prepare_grap2 == True and distance_sensor.getValue() < 300:
-        
+    if  prepare_grap2 == True and robot_connector.getPresence():
          motors[1].setPosition(sensors[1].getValue())
 
-         moveFingers(fingers, "close")
-         for x in range(15):
-             supervisor.step(timestep)
-            
+         moveFingers(fingers, "close")    
+         robot_connector.lock() 
+
          go_to_bucket = True        
          prepare_grap2 = False
 
@@ -603,7 +580,8 @@ while supervisor.step(timestep) != -1:
        
     if  drop == True and sensors[0].getValue()-0.01 < 2.2 < sensors[0].getValue()+0.01 or sensors[0].getValue()-0.01 < -2 < sensors[0].getValue()+0.01:
         moveFingers(fingers, mode = "open") 
-        
+        robot_connector.unlock()
+
         for x in range(5):
             supervisor.step(timestep)
         go_to_bucket2 == False

@@ -2,6 +2,14 @@
 DEF RED_CAN Solid {
   translation 3.1 0.86 0.506
   children [
+    Connector {
+      translation 0 0.02 0
+      rotation -1 0 0 -3.137485307179586
+      model "can_grasp"
+      type "passive"
+      axisTolerance 3.14
+      rotationTolerance 3.14
+    }
     Shape {
       appearance PBRAppearance {
         baseColor 0.901961 0.2 0.2

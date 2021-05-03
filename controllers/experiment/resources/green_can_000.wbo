@@ -1,8 +1,15 @@
 #VRML_OBJ R2021a utf8
 DEF GREEN_CAN Solid {
-  translation 3.2644 0.867408 0.516957
-  rotation -0.7700754976768365 -0.3189757919308829 0.5524836396128295 -1.2866553071795863
+  translation 3.33 0.88 0.5
   children [
+    Connector {
+      translation 0 0.02 0
+      rotation -1 0 0 -3.137485307179586
+      model "can_grasp"
+      type "passive"
+      axisTolerance 3.14
+      rotationTolerance 3.14
+    }
     Shape {
       appearance PBRAppearance {
         baseColor 0 1 0

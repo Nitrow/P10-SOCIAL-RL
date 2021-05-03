@@ -2,6 +2,14 @@
 DEF YELLOW_CAN Solid {
   translation 3.1 0.87 0.556
   children [
+    Connector {
+      translation 0 0.02 0
+      rotation -1 0 0 -3.137485307179586
+      model "can_grasp"
+      type "passive"
+      axisTolerance 3.14
+      rotationTolerance 3.14
+    }
     Shape {
       appearance PBRAppearance {
         baseColor 0.929412 0.831373 0
