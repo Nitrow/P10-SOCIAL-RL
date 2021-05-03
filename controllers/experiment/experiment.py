@@ -368,7 +368,15 @@ def endGame():
     displayScore(display_explanation, correctSort, wrongSort, missed)
     supervisor.step(64)
     supervisor.simulationSetMode(0)
+    
 
+def setPoseRobot(candidates, move_dic, index):
+    position_of_can = round(candidates[index][1][2], 2)
+    try:
+        poses = move_down_dic[position_of_can]
+        [motors[i].setPosition(math.radians(poses[i])) for i in range(len(poses))]
+    except KeyError:
+        continue
 
 def changeMass(node, mass):
     node_children = node.getField("children")
@@ -379,10 +387,20 @@ def changeMass(node, mass):
         if "PHYSICS" in node_children.getMFNode(n).getDef():
             n.getField("mass").setSFFloat(mass)
             break
+move_down_dic = {0.57 : [5.4, -124, -85, -59, 91, 90],
+                 0.53 : [41.19, -120.51, -78.88, -68.88, 91.26, 90],
+                 0.51 : [44.36, -124.12, -85.16, -59, 91.49, 90],
+                 0.49 : [52.2, -120, -41, -107, 91, 90],
+                 0.48 : [54.12, -121.52, -81.19, -65.69, 91, 90]}
 
 posesUP = [[5.4, -120, -41, -107, 91, 90], [41.252, -120, -41, -107, 91, 90],
     [44.35, -119.60, -42.43, -106.27, 91.43, 90], [52.20, -120, -41, -107, 91, 90], 
     [54.2,-120, -41, -107, 91, 90]]
+move_up_dic = {  0.57 : [5.4, -120, -41, -107, 91, 90],
+                 0.53 : [41.25, -120, -40.99, -106.99, 91, 90],
+                 0.51 : [44.35, -119.60, -42.43, -106.27, 91.43, 90],
+                 0.49 : [52.2, -121, -80, -65.67, 90.86, 90],
+                 0.48 : [54.26, -120, 40.99, -106.99, 91, 90]}
 
 posesDOWN = [[5.4, -124, -85, -59, 91, 90], [41.19, -120.51, -78.88, -68.88, 91.26, 90],
 [44.36, -124.12, -85.16, -59, 91.49, 90], [52.20, -121, -80, -65.67, 90.86, 90],
@@ -492,6 +510,7 @@ while supervisor.step(timestep) != -1:
          goal = supervisor.getFromId(index).getField("translation")
          target = np.array(goal.getSFVec3f())
          
+         setPoseRobot(candidates, move_up_dic, index)
          
         
          setPoseRobotUP()
@@ -542,6 +561,9 @@ while supervisor.step(timestep) != -1:
                       
              setPoseRobotDOWN()
              prepare_grap2 = True              
+         setPoseRobot(candidates, move_down_dic, index)
+       
+         prepare_grap2 = True        
 
     if  prepare_grap2 == True and distance_sensor.getValue() < 300:
         
