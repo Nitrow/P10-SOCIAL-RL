@@ -386,14 +386,14 @@ movementLock = False
 stages = {"Prepare2grap" : False, "LiftOff": False, "Sorting": False, "Release" : False, "Back2Ready": False, "GetReady" : False}
 target = []
 
-move_down_dic = {0.55 : [5.4, -124, -85, -59, 91, 90],
+move_down_dic_r = {0.55 : [5.4, -124, -85, -59, 91, 90],
                  0.53 : [41.19, -120.51, -78.88, -68.88, 91.26, 145],
                  0.51 : [50, -124.12, -85.16, -59, 91.49, 145],
                  0.49 : [52.2, -120, -41, -107, 91, 145],
                  0.48 : [54.12, -121.52, -81.19, -65.69, 91, 145]}
 
 
-move_up_dic = {  0.55 : [5.4, -114, -32, -110, 91, 90],
+move_up_dic_r = {  0.55 : [5.4, -114, -32, -110, 91, 90],
                  0.53 : [41.25, -120, -35.99, -106.99, 91, 145],
                  0.51 : [44.35, -119.60, -35.43, -106.27, 91.43, 145],
                  0.49 : [52.2, -121, -80, -35.67, 90.86, 145],
@@ -486,19 +486,19 @@ while supervisor.step(timestep) != -1:
          index = getFirstCan(candidates) #####SETTING THE CAN, CAN BE REPALCED BY AN ACTUAL ID#####
          can_dist = supervisor.getFromId(index).getField("translation").getSFVec3f()
          target_pos = round(can_dist[2], 2)
-         target = setPoseRobot(move_up_dic, target_pos) if can_dist[0] < 2 else None
+         target = setPoseRobot(move_up_dic_r, target_pos) if can_dist[0] < 2 else None
          stages["Prepare2grap"] = True if target else False   
 
     if stages["Prepare2grap"] and positionCheck(target, sensors) and can_dist[0] < 1.5:
          stages["Prepare2grap"] = False
-         target = setPoseRobot(move_down_dic, target_pos)      
+         target = setPoseRobot(move_down_dic_r, target_pos)      
          stages["LiftOff"] = True
 
     if stages["LiftOff"] and robot_connector.getPresence():
          stages["LiftOff"] = False
          moveFingers(fingers, "close")    
          robot_connector.lock()
-         target = setPoseRobot(move_up_dic, target_pos)
+         target = setPoseRobot(move_up_dic_r, target_pos)
          #target = setPoseRobot(custom_dic, "ready")
          stages["Sorting"] = True
 
