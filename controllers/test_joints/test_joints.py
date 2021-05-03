@@ -7,13 +7,9 @@ def deg2rad(deg):
     return deg*(math.pi/180)
 
 def set_joints(pos, motors, joint_names):
-    target = {'shoulder_pan_joint': pos[0],
-            'shoulder_lift_joint' : pos[1],
-            'elbow_joint'         : pos[2],
-            'wrist_1_joint'       : pos[3],
-            'wrist_2_joint'       : pos[4],
-            'wrist_3_joint'       : pos[5]}
-
+    target = {}
+    for i in range(len(joint_names))
+        target[joint_names[i]] =  pos[i]
     for i in range(len(motors)):
         motors[i].setPosition(deg2rad(target[joint_names[i]]))
     while True:
@@ -71,8 +67,6 @@ for i in range(len(joint_names)):
 
 
 
-pos555_down = [5.4, -124, -85, -59, 91, 90]
-pos555_up = [5.4, -120, -41, -107, 91, 90]
 
 pos530_down =  [41.25296124941927, -120.00257244338015, -40.99851069260167, -106.99872232509098, 91.000021811653, 90]
 pos530_up = [41.19, -120.51, -78.88, -68.88, 91.26, 90] 
@@ -107,11 +101,3 @@ set_joints(pos_down, motors, joint_names)
 #set_joints(pos_up, motors, joint_names)
 #[supervisor.step(TIME_STEP) for x in range(10)] 
 
-
-
-
-print(math.degrees(0.91))
-print(math.degrees(-2.09444))
-print(math.degrees(-0.715559))
-print(math.degrees(-1.86748))
-print(math.degrees(1.58825))
