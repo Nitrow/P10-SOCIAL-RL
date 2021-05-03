@@ -77,9 +77,9 @@ def pickTargets(total_cans, choices=5, min_dist = 0.5):
         reason = ""
         candidates[key] = [val]
         candidates[key].append(supervisor.getFromId(key).getField("translation").getSFVec3f())
-        if candidates[key][1][0] > 0.5:
+        if candidates[key][1][0] > 1.01:
             if val[1] in ["green", "red"]:
-                if abs(supervisor.getFromId(key).getField("rotation").getSFRotation()[3]) > 0.75:
+                if "ROTATED" in supervisor.getFromId(key).getDef():
                     reason += "graspError"
                 else:
                     top5_keys.append(key)
@@ -165,8 +165,8 @@ def countCans(missed, total_cans, candidates):
                     del total_cans[can_id]
                 elif z > 0.6 or z < 0.4:
                     # If it's the one being grabbed then don't delete it
-                    if candidates[can_id][2] != '1':
-                        del total_cans[can_id]
+
+                    del total_cans[can_id]
             # If the can is not in the list yet, we should add it
             else:
                 if y >= 0.8:
@@ -405,8 +405,7 @@ for i in range(len(joint_names)):
     sensors[i] = supervisor.getDevice(joint_names[i] + '_sensor')
     sensors[i].enable(timestep)
     #motors[i].setPosition(float('inf'))
-    motors[i].setVelocity(3.14)                
-motors[0].setVelocity(3.14)         
+    motors[i].setVelocity(3.14)                        
 for i in range(len(finger_names)):  
     fingers[i] = supervisor.getDevice(finger_names[i])
     sensor_fingers[i] = supervisor.getDevice(finger_names[i] + '_sensor')
@@ -415,7 +414,7 @@ for i in range(len(finger_names)):
 distance_sensor = supervisor.getDevice("distance_sensor1") 
 distance_sensor.enable(timestep)  
 
-my_chain = ikpy.chain.Chain.from_urdf_file("resources/robot2.urdf")      
+my_chain = ikpy.chain.Chain.from_urdf_file("resources/robot.urdf")      
 
 
 prepare_grasp = True
@@ -475,7 +474,7 @@ while supervisor.step(timestep) != -1:
         new_position = selection.getField("translation").getSFVec3f()
         new_position[1] = can_height
         canSelection.getField("translation").setSFVec3f(new_position)
-        changeMass(canSelection, 3)
+        #changeMass(canSelection, 3)
         if selectionColor == canColor: correctSort += 1
         else: wrongSort += 1 
         del total_cans[canSelection.getId()]
@@ -509,14 +508,17 @@ while supervisor.step(timestep) != -1:
          index = getFirstCan(candidates) #####SETTING THE CAN, CAN BE REPALCED BY AN ACTUAL ID#####
          goal = supervisor.getFromId(index).getField("translation")
          target = np.array(goal.getSFVec3f())
-         
-         setPoseRobot(candidates, move_up_dic, index)     
+         color = total_cans[index][1]
+         #setPoseRobot(candidates, move_up_dic, index)     
         
          setPoseRobotUP()
          prepare_grasp = False
+         print("HERE")
          
 
     if  prepare_grasp == False:
+        
+         print("NOW HERE")
                  
          if round(target[2],2) == 0.56 and round(target[0], 2) == -0.07 + 1.02:
                       
@@ -541,7 +543,7 @@ while supervisor.step(timestep) != -1:
                       
              setPoseRobotDOWN()
              prepare_grap2 = True              
-         setPoseRobot(candidates, move_down_dic, index)
+         #setPoseRobot(candidates, move_down_dic, index)
          prepare_grap2 = True        
 
     if  prepare_grap2 == True and robot_connector.getPresence():
@@ -567,12 +569,12 @@ while supervisor.step(timestep) != -1:
     if go_to_bucket2 == True:
           go_to_bucket2 = False  
           
-          if total_cans[index][1] == "green":
+          if color == "green":
               for i in range(len(joint_names)):
                       motors[0].setPosition(2.2)
                       drop = True
 
-          elif total_cans[index][1] == "red":
+          elif color == "red":
               for i in range(len(joint_names)):
                       motors[0].setPosition(-2)
                       drop = True
@@ -581,9 +583,6 @@ while supervisor.step(timestep) != -1:
     if  drop == True and sensors[0].getValue()-0.01 < 2.2 < sensors[0].getValue()+0.01 or sensors[0].getValue()-0.01 < -2 < sensors[0].getValue()+0.01:
         moveFingers(fingers, mode = "open") 
         robot_connector.unlock()
-
-        for x in range(5):
-            supervisor.step(timestep)
         go_to_bucket2 == False
         prepare_grasp = True
         drop = False
