@@ -1,5 +1,5 @@
 #VRML_OBJ R2021a utf8
-DEF GREEN_CAN Solid {
+DEF GREEN_ROTATED_CAN Solid {
   translation 3.33 0.88 0.5
   children [
     Connector {

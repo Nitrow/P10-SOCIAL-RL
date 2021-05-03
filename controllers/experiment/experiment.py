@@ -26,9 +26,10 @@ reason_dict = { 'colorError' : "Can't sort color",
                 'proximityError': "Can't reach in time"}
 
 # 50-33 takes 100sec
+#max_cans = 20  # 20 is doable with 50 freq
+#freq = 50  # Less is more - 50 is doable
 max_cans = 20  # 20 is doable with 50 freq
-freq = 50  # Less is more - 50 is doable
-
+freq = 33  # Less is more - 50 is doable
 # from pyutil import filereplace
 # def fileChanger(textToSearch, textToReplace):
 #     for file in os.listdir("resources"):
@@ -51,7 +52,7 @@ def getFirstCan(candidates):
     for key, val in candidates.items():
         if val[2] == '1':
             return key
-    return None
+    return False
 
 
 def pickTargets(total_cans, choices=5, min_dist = 0.5):
@@ -77,21 +78,21 @@ def pickTargets(total_cans, choices=5, min_dist = 0.5):
         reason = ""
         candidates[key] = [val]
         candidates[key].append(supervisor.getFromId(key).getField("translation").getSFVec3f())
-        if candidates[key][1][0] > 0.5:
+        # The can has to be closer then 0.5 and within the range of the conveyor or be (grasped above conveyor)
+        if candidates[key][1][0] >= 0.5 and (int(candidates[key][1][2]*10) in range(4,6) or candidates[key][1][1] > 0.9):
             if val[1] in ["green", "red"]:
-                if abs(supervisor.getFromId(key).getField("rotation").getSFRotation()[3]) > 0.75:
+                if "ROTATED" in supervisor.getFromId(key).getDef():
                     reason += "graspError"
+                elif candidates[key][1][0] <= 1:
+                    reason += "proximityError"
                 else:
                     top5_keys.append(key)
                     top5_dists.append(candidates[key][1][0])
             else:
                 reason += "colorError"
-
         candidates[key].append(reason)
-    #top_choices = sorted(zip(top5_dists, top5_keys), key=lambda x: x[1])[:choices]
 
     sorted_cans = sorted(zip(top5_dists, top5_keys), key=lambda x: x[1])
-    
     top_choices = []
 
     for i in range(len(sorted_cans)):
@@ -100,7 +101,7 @@ def pickTargets(total_cans, choices=5, min_dist = 0.5):
             top_choices.append(sorted_cans[i])
         # Check distance to next can
         else:
-            if abs(top_choices[-1][0] - sorted_cans[i][0]) <= min_dist:
+            if abs(top_choices[-1][0] - sorted_cans[i][0]) <= min_dist or sorted_cans[i][0] < 1:
                 candidates[sorted_cans[i][1]][2] = "proximityError"
             else:
                 top_choices.append(sorted_cans[i])
@@ -112,20 +113,24 @@ def pickTargets(total_cans, choices=5, min_dist = 0.5):
     return candidates
 
 
-def position_Checker():
-    """
-    Returns true if all joints are 0.02 rad within the desired angles
-    """
-    return all([abs(sensors[i].getValue() - joints[i+1]) < 0.02 for i in range(len(sensors))])
+def positionCheck(pos, sens, limit = 0.2):
+    #print("Difference is: {}".format(abs(sens[i].getValue() - math.radians(pos[i]))))
+    global movementLock
+    if len(pos):
+        print("Target position at: {}, position is at {}".format(pos, [math.degrees(sens[i].getValue()) for i in range(len(pos))]))
+        if all([abs(sens[i].getValue() - math.radians(pos[i])) < limit for i in range(len(pos))]):
+            movementLock = False
+            return True 
+    else: 
+        return False
 
 
-def displayScore(display, correct, incorrect, missed):
+def displayScore(display, correct, incorrect, missed, robot_correct, robot_incorrect):
     h = int(display.getHeight() / 6)
     w = int(display.getWidth() / 2)
     marginW = int(display.getWidth()*0.05)
     marginH = int(display.getHeight()*0.05)
     x = h + marginH
-    robot_correct, robot_incorrect = 0, 0
 
     display.setOpacity(1)
     display.setAlpha(1)
@@ -146,7 +151,7 @@ def displayScore(display, correct, incorrect, missed):
     display.drawText("Missed: {}".format(missed), marginW, x)
     x += h
     display.setFont("Lucida Console", 48, True)
-    display.drawText("Total score:     {}".format(correct-incorrect-missed), marginW, x)
+    display.drawText("Total score:     {}".format(correct-incorrect-missed+robot_correct-robot_incorrect), marginW, x)
 
 
 def countCans(missed, total_cans, candidates):
@@ -163,17 +168,18 @@ def countCans(missed, total_cans, candidates):
                     missed += 1
                     toRemove.append(can)
                     del total_cans[can_id]
-                elif z > 0.6 or z < 0.4:
-                    # If it's the one being grabbed then don't delete it
-                    if candidates[can_id][2] != '1':
-                        del total_cans[can_id]
+                elif (z > 0.6 or z < 0.4) and y <= 0.88:
+                    # If it's the one being grabbed then don't delete it (height is above 0.88)
+                    #if candidates[can_id][2] != '1':
+                    del total_cans[can_id]
             # If the can is not in the list yet, we should add it
             else:
                 if y >= 0.8:
                     trueColor = can.getDef().split('_')[0].lower()
                     total_cans[can_id] = []
                     total_cans[can_id].append(trueColor)
-                    if random.random() <= 0.7:
+                    # Random number or the can is already grasped
+                    if random.random() <= 0.7 or y >= 0.88:
                         total_cans[can_id].append(trueColor)
                     else:
                         options = ["yellow", "red", "green"]
@@ -266,73 +272,29 @@ def generateCans():
     pos_choice = random.choice(can_distances)
     can = "resources/" + random.choice(can_colors) + "_can_" + pos_choice + ".wbo"
     root_children.importMFNode(-1, can)
+    if pos_choice not in ["000", "999"]:
+        can_reposition_dict = {"556" : 0.55, "479" : 0.48, "506" : 0.51, "490" : 0.49, "530" : 0.53}
+        root_children.getMFNode(-1).getField("translation").setSFVec3f([3.1, 0.87, can_reposition_dict[pos_choice]])
 
 
 def endGame():
     [supervisor.step(64) for x in range(10)]
-    displayScore(display_explanation, correctSort, wrongSort, missed)
-    supervisor.step(64)
+    displayScore(display_explanation, correctSort, wrongSort, missed, robot_correct, robot_incorrect)
+    [supervisor.step(64) for x in range(10)]
     supervisor.simulationSetMode(0)
     
 
-def setPoseRobot(candidates, move_dic, index):
-    position_of_can = round(supervisor.getFromId(index).getField("translation").getSFVec3f()[2], 2)
+def setPoseRobot(move_dic, can_pose):
+    target = []
+    print(can_pose)
     try:
-        poses = move_down_dic[position_of_can]
+        movementLock = True
+        poses = move_dic[can_pose]
         [motors[i].setPosition(math.radians(poses[i])) for i in range(len(poses))]
+        target = poses[:]
     except KeyError:
-        return
-
-
-def setPoseRobotUP():      
-    for key, val in candidates.items():
-        if val[2] == '1':
-            position_of_can = val[1]
-            if round(position_of_can[2],2) == 0.56:
-                    for i in range(6):
-                        motors[i].setPosition(math.radians(posesUP[0][i]))
-             
-            elif round(position_of_can[2],2) == 0.53:
-                    for i in range(6):
-                        motors[i].setPosition(math.radians(posesUP[1][i]))         
-                         
-            elif round(position_of_can[2],2) == 0.51:
-                    for i in range(6):
-                        motors[i].setPosition(math.radians(posesUP[2][i]))
-                     
-            elif round(position_of_can[2],2) == 0.49:
-                    for i in range(6):
-                        motors[i].setPosition(math.radians(posesUP[3][i]))  
-                                         
-            elif round(position_of_can[2],2) == 0.48:
-                    for i in range(6):
-                        motors[i].setPosition(math.radians(posesUP[4][i])) 
-      
-            
-def setPoseRobotDOWN():
-
-            if round(target[2],2) == 0.56:
-                    for i in range(6):
-                        motors[i].setPosition(math.radians(posesDOWN[0][i]))
-                        
-            elif round(target[2],2) == 0.53:
-                    for i in range(6):
-                        motors[i].setPosition(math.radians(posesDOWN[1][i]))
-                        
-            elif round(target[2],2) == 0.51:
-                    for i in range(6):
-                        motors[i].setPosition(math.radians(posesDOWN[2][i]))
-                         
-            elif round(target[2],2) == 0.49:
-                    for i in range(6):
-                        motors[i].setPosition(math.radians(posesDOWN[3][i]))  
-                     
-            elif round(target[2],2) == 0.48:
-                    for i in range(6):
-                        motors[i].setPosition(math.radians(posesDOWN[4][i]))
-    
-
-
+        print("KEYERROR!")
+    return target
 
 y = 0.88
 x = 3.17
@@ -368,8 +330,6 @@ height = camera.getHeight()
 # mouse.enable3dPosition()
 colors = {"yellow" : [0.309804, 0.913725, 1.0], "red" : [0.0, 0.0, 1.0], "green" : [0.0, 1.0, 0.0]}
 
-
-
 selection = None
 prevSelection = None
 canSelection = None
@@ -379,12 +339,9 @@ canSelectionName = None
 
 total_cans = {}
 
-
 missed = 0
 correctSort = 0
 wrongSort = 0
-
-
 
 joint_names = ['shoulder_pan_joint',
                 'shoulder_lift_joint',
@@ -417,54 +374,61 @@ distance_sensor.enable(timestep)
 
 my_chain = ikpy.chain.Chain.from_urdf_file("resources/robot2.urdf")      
 
+target_pos = 0
+targetAcquired = False
+needsMovingUp = False
+movementLock = False
+# Busy: If it has a target
+# Prepare2grap: In position for grabbing
+# LiftOff: Lift it up after grabbing (so it doesn't knock over other cans)
+# Sorting: Takes to appropriate bin
+# Release: Releases the can
+# Back2Ready
+stages = {"Prepare2grap" : False, "LiftOff": False, "Sorting": False, "Release" : False, "Back2Ready": False, "GetReady" : False}
+target = []
 
-prepare_grasp = True
-go_to_bucket = False
-prepare_grap2 = False
-go_to_bucket2 = False
-drop = False
+move_down_dic = {0.55 : [5.4, -124, -85, -59, 91, 90],
+                 0.53 : [41.19, -120.51, -78.88, -68.88, 91.26, 145],
+                 0.51 : [50, -124.12, -85.16, -59, 91.49, 145],
+                 0.49 : [52.2, -120, -41, -107, 91, 145],
+                 0.48 : [54.12, -121.52, -81.19, -65.69, 91, 145]}
 
-move_down_dic = {0.57 : [5.4, -124, -85, -59, 91, 90],
-                 0.53 : [41.19, -120.51, -78.88, -68.88, 91.26, 90],
-                 0.51 : [44.36, -124.12, -85.16, -59, 91.49, 90],
-                 0.49 : [52.2, -120, -41, -107, 91, 90],
-                 0.48 : [54.12, -121.52, -81.19, -65.69, 91, 90]}
 
-posesUP =   [[5.4, -120, -41, -107, 91, 90],
-            [41.252, -120, -41, -107, 91, 90],
-            [44.35, -119.60, -42.43, -106.27, 91.43, 90],
-            [52.20, -120, -41, -107, 91, 90], 
-            [54.2,-120, -41, -107, 91, 90]]
+move_up_dic = {  0.55 : [5.4, -114, -32, -110, 91, 90],
+                 0.53 : [41.25, -120, -35.99, -106.99, 91, 145],
+                 0.51 : [44.35, -119.60, -35.43, -106.27, 91.43, 145],
+                 0.49 : [52.2, -121, -80, -35.67, 90.86, 145],
+                 0.48 : [54.26, -120, -35.99, -106.99, 91, 145]}
 
-move_up_dic = {  0.57 : [5.4, -120, -41, -107, 91, 90],
-                 0.53 : [41.25, -120, -40.99, -106.99, 91, 90],
-                 0.51 : [44.35, -119.60, -42.43, -106.27, 91.43, 90],
-                 0.49 : [52.2, -121, -80, -65.67, 90.86, 90],
-                 0.48 : [54.26, -120, 40.99, -106.99, 91, 90]}
+# custom_dic = {  "ready" : [0, -90, -90, -90, 90, 90],
+#                 "green" : [125, -150, -31, -76, 90, 145],
+#                 "red"   : [-100, -150, -25, -76, 90, 145]}
 
-posesDOWN = [[5.4, -124, -85, -59, 91, 90],
-            [41.19, -120.51, -78.88, -68.88, 91.26, 90],
-            [44.36, -124.12, -85.16, -59, 91.49, 90],
-            [52.20, -121, -80, -65.67, 90.86, 90],
-            [54.12, -121.52, -81.19, -65.69, 91.09, 90]]
-
+# custom_dic = {  "ready" : [0, -90, -90, -90, 90, 90],
+#                 "green" : [115, -140, -33, -90, 90, 145],
+#                 "red"   : [-100, -150, -25, -76, 90, 145]}                
+custom_dic = {  "ready" : [0, -90, -90, -90, 90, 90],
+                "green" : [120, -125, -30, -100, 90, 145],
+                "red"   : [-120, -140, -18, -100, 90, 145]}
 candidates = {}
 
-moveFingers(fingers) 
+moveFingers(fingers)
+setPoseRobot(custom_dic, "ready")
 
-
+robot_correct, robot_incorrect = 0, 0
 root_children = supervisor.getRoot().getField("children")
 
 robot_connector = supervisor.getDevice("connector")
 robot_connector.enablePresence(timestep)
+
 while supervisor.step(timestep) != -1:
+
     total_cans, missed = countCans(missed, total_cans, candidates)
     candidates = pickTargets(total_cans, 3)
     #print(total_cans)
     selection = supervisor.getSelected()
     selectionName = selection.getDef() if selection else ""
     selectionColor = selectionName.split('_')[0]
-    print(robot_connector.getPresence())
     # for keys, vals in total_cans.items():
     #     print (keys, vals)
     if "CAN" in selectionName:
@@ -475,7 +439,6 @@ while supervisor.step(timestep) != -1:
         new_position = selection.getField("translation").getSFVec3f()
         new_position[1] = can_height
         canSelection.getField("translation").setSFVec3f(new_position)
-        changeMass(canSelection, 3)
         if selectionColor == canColor: correctSort += 1
         else: wrongSort += 1 
         del total_cans[canSelection.getId()]
@@ -500,96 +463,61 @@ while supervisor.step(timestep) != -1:
     if cam: drawImage(camera, colors, candidates)
     if can_num >= max_cans and not bool(total_cans):
         endGame()
-####################################################################################################################### 
-#######################################################################################################################
-#######################################################################################################################
 
-    if prepare_grasp == True and getFirstCan(candidates):
-         
+############################################ 
+###### R O B O T     M O V E M E N T #######
+############################################
+    try:
+        targetPrint = target_pos
+    except NameError:
+        targetPrint = "None"
+    busy = any(stage for stage in stages.values())
+    print("Stage: {} - Target: {}".format([key for key in stages.keys() if stages[key] == True], targetPrint))
+
+    # Update variables & check if target is still available
+    if busy:
+        if index not in total_cans.keys() and not stages["GetReady"]:
+            for key in stages.keys(): stages[key] = False
+            busy = False
+            setPoseRobot(custom_dic, "ready")
+        else:
+            can_dist = supervisor.getFromId(index).getField("translation").getSFVec3f()    
+
+    if not busy and getFirstCan(candidates):
          index = getFirstCan(candidates) #####SETTING THE CAN, CAN BE REPALCED BY AN ACTUAL ID#####
-         goal = supervisor.getFromId(index).getField("translation")
-         target = np.array(goal.getSFVec3f())
-         
-         setPoseRobot(candidates, move_up_dic, index)     
-        
-         setPoseRobotUP()
-         prepare_grasp = False
-         
+         can_dist = supervisor.getFromId(index).getField("translation").getSFVec3f()
+         target_pos = round(can_dist[2], 2)
+         target = setPoseRobot(move_up_dic, target_pos) if can_dist[0] < 2 else None
+         stages["Prepare2grap"] = True if target else False   
 
-    if  prepare_grasp == False:
-                 
-         if round(target[2],2) == 0.56 and round(target[0], 2) == -0.07 + 1.02:
-                      
-             setPoseRobotDOWN()
-             prepare_grap2 = True  
-         if round(target[2],2) == 0.53 and round(target[0], 2) == 0.22 + 1.02:
-                      
-             setPoseRobotDOWN()
-             prepare_grap2 = True
-             
-             
-         if round(target[2],2) == 0.51 and round(target[0], 2) == 0.25 + 1.02:
-                      
-             setPoseRobotDOWN()
-             prepare_grap2 = True
-         if round(target[2],2) == 0.49 and round(target[0], 2) == 0.27 + 1.02:
-             
-         
-             setPoseRobotDOWN()
-             prepare_grap2 = True
-         if round(target[2],2) == 0.48 and round(target[0], 2) == 0.31 + 1.02:
-                      
-             setPoseRobotDOWN()
-             prepare_grap2 = True              
-         setPoseRobot(candidates, move_down_dic, index)
-         prepare_grap2 = True        
+    if stages["Prepare2grap"] and positionCheck(target, sensors) and can_dist[0] < 1.5:
+         stages["Prepare2grap"] = False
+         target = setPoseRobot(move_down_dic, target_pos)      
+         stages["LiftOff"] = True
 
-    if  prepare_grap2 == True and robot_connector.getPresence():
-         motors[1].setPosition(sensors[1].getValue())
-
+    if stages["LiftOff"] and robot_connector.getPresence():
+         stages["LiftOff"] = False
          moveFingers(fingers, "close")    
-         robot_connector.lock() 
+         robot_connector.lock()
+         target = setPoseRobot(move_up_dic, target_pos)
+         #target = setPoseRobot(custom_dic, "ready")
+         stages["Sorting"] = True
 
-         go_to_bucket = True        
-         prepare_grap2 = False
+    if stages["Sorting"] and positionCheck(target, sensors, 0.01):
+         stages["Sorting"] = False
+         # Set target to the perceived color's crate
+         target = setPoseRobot(custom_dic, candidates[index][0][1])
+         stages["Release"] = True
 
-    if  go_to_bucket == True and go_to_bucket2 == False:
-
-         setPoseRobotUP()
-         
-         
-    if go_to_bucket == True and go_to_bucket2 == False and sensors[1].getValue() > -2.1 :
-                 go_to_bucket2 = True    
-                 go_to_bucket = False
-    
-    
-    
-    if go_to_bucket2 == True:
-          go_to_bucket2 = False  
-          
-          if total_cans[index][1] == "green":
-              for i in range(len(joint_names)):
-                      motors[0].setPosition(2.2)
-                      drop = True
-
-          elif total_cans[index][1] == "red":
-              for i in range(len(joint_names)):
-                      motors[0].setPosition(-2)
-                      drop = True
-
-       
-    if  drop == True and sensors[0].getValue()-0.01 < 2.2 < sensors[0].getValue()+0.01 or sensors[0].getValue()-0.01 < -2 < sensors[0].getValue()+0.01:
+    if  stages["Release"] and positionCheck(target, sensors, 0.02):
         moveFingers(fingers, mode = "open") 
         robot_connector.unlock()
+        robot_correct += 1 if candidates[index][0][1] == candidates[index][0][0] else 0
+        robot_incorrect += 1 if candidates[index][0][1] != candidates[index][0][0] else 0
+        stages["Release"] = False
+        if not getFirstCan(candidates):
+            target = setPoseRobot(custom_dic, "ready")
+            stages["GetReady"] = True
 
-        for x in range(5):
-            supervisor.step(timestep)
-        go_to_bucket2 == False
-        prepare_grasp = True
-        drop = False
-    if getFirstCan(candidates):
-    
-        
-        index = getFirstCan(candidates)
-        goal = supervisor.getFromId(index).getField("translation")
-        target = np.array(goal.getSFVec3f())
+    if  stages["GetReady"] and positionCheck(target, sensors, 0.01):
+        stages["GetReady"] = False

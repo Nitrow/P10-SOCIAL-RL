@@ -1,5 +1,5 @@
 #VRML_OBJ R2021a utf8
-DEF YELLOW_CAN Solid {
+DEF YELLOW_ROTATED_CAN Solid {
   translation 3.004 0.868746 0.473603
   rotation 1 -2.31532e-08 -4.03016e-08 1.0472
   children [
