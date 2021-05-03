@@ -362,8 +362,7 @@ for i in range(len(joint_names)):
     sensors[i] = supervisor.getDevice(joint_names[i] + '_sensor')
     sensors[i].enable(timestep)
     #motors[i].setPosition(float('inf'))
-    motors[i].setVelocity(3.14)                
-motors[0].setVelocity(3.14)         
+    motors[i].setVelocity(3.14)                        
 for i in range(len(finger_names)):  
     fingers[i] = supervisor.getDevice(finger_names[i])
     sensor_fingers[i] = supervisor.getDevice(finger_names[i] + '_sensor')
@@ -372,7 +371,7 @@ for i in range(len(finger_names)):
 distance_sensor = supervisor.getDevice("distance_sensor1") 
 distance_sensor.enable(timestep)  
 
-my_chain = ikpy.chain.Chain.from_urdf_file("resources/robot2.urdf")      
+my_chain = ikpy.chain.Chain.from_urdf_file("resources/robot.urdf")      
 
 target_pos = 0
 targetAcquired = False
