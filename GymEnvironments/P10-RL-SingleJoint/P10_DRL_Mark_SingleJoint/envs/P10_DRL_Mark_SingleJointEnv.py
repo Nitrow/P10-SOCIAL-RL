@@ -23,7 +23,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
     def __init__(self):
 
         random.seed(1)
-        self.id = "SAC - " + str(datetime.now())[:-7].replace(':','_') + '_P10_MarkEnv_SingleJoint' 
+        self.id = "SAC - " + str(datetime.now())[:-7].replace(':','_') + '_P10_MarkEnv_SingleJoint - all joints' 
         #self.id = '2021-04-15 09_44_43_SAC_P10_MarkEnv_SingleJoint_' 
         self.path = "data/" + self.id + "/"
         os.makedirs(self.path, exist_ok=True)
@@ -40,7 +40,8 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         
         self.timeout = 2000
         
-        self.joint_names = ['shoulder_pan_joint', 'shoulder_lift_joint']
+        self.joint_names = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
+        #self.joint_names = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
         
         self.motors = [0] * len(self.joint_names)
         self.sensors = [0] * len(self.joint_names)
@@ -75,10 +76,10 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.counter = 0
 
         self.actionScale = 3
-        self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
-        self.observation_space = spaces.Box(low=-10, high=10, shape=(6,), dtype=np.float32)
+        self.action_space = spaces.Box(low=-1, high=1, shape=(len(self.joint_names),), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-10, high=10, shape=(len(self.joint_names)+6,), dtype=np.float32)
         
-        self.documentation = "Action space: joint 1 and 2, State space: tcp pos (xyz), target pos (xyz) "
+        self.documentation = "Action space: all joints State space: tcp pos (xyz), target pos (xyz), joint positions ."
         self.documentation += "{} - Rewards {} - Timeout at {}\n".format(self.id, self.rewardstr, str(self.timeout))
         self.saveEpisode(self.documentation)
 
@@ -199,8 +200,8 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
 
 
     def getState(self):
-        #return [self.sensors[i].getValue() for i in range(len(self.sensors))] + self.tcp.getPosition() + self.target 
-        return self.tcp.getPosition() + self.target 
+        return [self.sensors[i].getValue() for i in range(len(self.sensors))] + self.tcp.getPosition() + self.target 
+        #return self.tcp.getPosition() + self.target 
 
 
     def plot_learning_curve(self):
