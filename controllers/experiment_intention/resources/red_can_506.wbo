@@ -1,19 +1,19 @@
 #VRML_OBJ R2021a utf8
-DEF GREEN_CAN Solid {
-  translation 3.33 0.88 0.5
+DEF RED_CAN Solid {
+  translation 3.1 0.86 0.506
   children [
     Shape {
       appearance PBRAppearance {
-        baseColor 0 1 0
+        baseColor 0.901961 0.2 0.2
         baseColorMap ImageTexture {
           url [
-            "textures/can_base_color_green.jpg"
+            "textures/can_base_color.jpg"
           ]
         }
         roughness 0.2
         roughnessMap ImageTexture {
           url [
-            "textures/can_base_color_green.jpg"
+            "textures/can_roughness.jpg"
           ]
         }
         metalness 0.8
@@ -39,18 +39,18 @@ DEF GREEN_CAN Solid {
       }
     }
   ]
-  name "can(5)"
+  name "can(4)"
   model "can"
   boundingObject Cylinder {
     height 0.1222
     radius 0.03175
     subdivision 20
   }
-  physics Physics {
+  physics DEF PHYSICS Physics {
     density -1
-    mass 0.35
+    mass 0.1
   }
   recognitionColors [
-    0 1 0
+    0 0 1
   ]
 }
