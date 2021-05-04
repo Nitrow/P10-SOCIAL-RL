@@ -1,9 +1,10 @@
 #VRML_OBJ R2021a utf8
-DEF YELLOW_CAN Solid {
-  translation 2.7 0.87 0.530
+DEF RED_ROTATED_CAN Solid {
+  translation 2.7 0.850828 0.472056
+  rotation -0.16769902688333005 -0.3772630604779143 0.9107961460070095 1.33114
   children [
     Connector {
-      translation 0 0.04 0
+      translation 0 0.02 0
       rotation -1 0 0 -3.137485307179586
       model "can_grasp"
       type "passive"
@@ -12,19 +13,19 @@ DEF YELLOW_CAN Solid {
     }
     Shape {
       appearance PBRAppearance {
-        baseColor 0.929412 0.831373 0
+        baseColor 0.901961 0.2 0.2
         baseColorMap ImageTexture {
           url [
-            "textures/can_base_color_yellow.jpg"
+            "textures/can_base_color.jpg"
           ]
         }
         roughness 0.2
         roughnessMap ImageTexture {
           url [
-            "textures/can_base_color_yellow.jpg"
+            "textures/can_roughness.jpg"
           ]
         }
-        metalness 0.3
+        metalness 0.8
       }
       geometry IndexedFaceSet {
         coord Coordinate {
@@ -47,7 +48,7 @@ DEF YELLOW_CAN Solid {
       }
     }
   ]
-  name "can(6)"
+  name "can(1)"
   model "can"
   boundingObject Cylinder {
     height 0.1222
@@ -59,6 +60,6 @@ DEF YELLOW_CAN Solid {
     mass 0.35
   }
   recognitionColors [
-    0.309804 0.913725 1
+    0 0 1
   ]
 }
