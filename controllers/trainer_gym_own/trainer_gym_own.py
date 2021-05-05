@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3.8
 
 import gym
 import numpy as np
@@ -8,14 +8,14 @@ import numpy as np
 from datetime import datetime
 
 from P10_DRL_Mark.envs import P10_DRL_Mark_Env
-from P10_DRL_Mark_SingleJoint.envs import P10_DRL_Mark_SingleJointEnv
+from P10_DRL_Mark_SimpleEnv.envs import P10_DRL_Mark_SimpleEnv
 from P10_RL_env_v01.envs import P10RLEnv
 
 if __name__ == '__main__':
 
     n_games = 2500
     dt = 32
-    env = P10_DRL_Mark_SingleJointEnv()
+    env = P10_DRL_Mark_SimpleEnv()
     #env = P10_DRL_Mark_Env()
     # agent = Agent(alpha=0.0003, beta=0.0003, reward_scale=2, env_id=env.id, 
                 # input_dims=env.observation_space.shape, tau=0.005,

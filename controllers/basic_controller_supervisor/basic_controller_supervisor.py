@@ -15,12 +15,14 @@ from ikpy.chain import Chain
 import matplotlib.pyplot as plt
 import ikpy.utils.plot as plot_utils
 
+import torch as T
 # create the Robot instance.
 #robot = Robot()
 
 #my_chain = Chain.from_urdf_file("../../resources/robot.urdf")
 target_orientation = [0, 0, 1]
 target_position = [ 0.1, -0.2, 0.1]
+target_joints = [0, 0, 0, 0, 0, 0, 0]
 #target_joints = my_chain.inverse_kinematics(target_position)
 #target_joints = my_chain.inverse_kinematics(target_position, target_orientation, orientation_mode="X")
 
