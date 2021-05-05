@@ -14,9 +14,9 @@ spawn_timer = 0
 spawn_limit = 15
 pos_choice = "000"
 
-drawIntention = False
+drawIntention = True
 drawIntentionLimit = 1
-drawRectangle = False
+drawRectangle = True
 drawText = True
 
 
