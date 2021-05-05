@@ -11,12 +11,12 @@ random.seed(10)
 
 can_num = 0
 spawn_timer = 0
-spawn_limit = 20
+spawn_limit = 15
 pos_choice = "000"
 
-drawIntention = True
+drawIntention = False
 drawIntentionLimit = 1
-drawRectangle = True
+drawRectangle = False
 drawText = True
 
 
@@ -28,7 +28,7 @@ reason_dict = { 'colorError' : "Can't sort color",
 #max_cans = 20  # 20 is doable with 50 freq
 #freq = 50  # Less is more - 50 is doable
 max_cans = 40  # 20 is doable with 50 freq
-freq = 2  # Less is more - 50 is doable
+freq = 3  # Less is more - 50 is doable
 # from pyutil import filereplace
 # def fileChanger(textToSearch, textToReplace):
 #     for file in os.listdir("resources"):
@@ -129,7 +129,7 @@ def endGame():
     supervisor.simulationSetMode(0)
 
 
-def positionCheck(pos, sens, limit = 0.2):
+def positionCheck(pos, sens, limit = 0.1):
     global movementLock
     if len(pos):
         print("Target position at: {}, position is at {}".format(pos, [math.degrees(sens[i].getValue()) for i in range(len(pos))]))
@@ -423,6 +423,8 @@ move_dict = {"up" : move_up_dic_r, "down" : move_down_dic_r}
 moveFingers(fingers)
 setPoseRobot(custom_dic, "ready")
 
+graspedCan = None
+
 robot_correct, robot_incorrect = 0, 0
 root_children = supervisor.getRoot().getField("children")
 
@@ -444,6 +446,10 @@ while supervisor.step(timestep) != -1:
         canColor = selectionColor
         
     elif ("CRATE" in selectionName) and canSelection:
+        if canSelection.getId() == graspedCan and robot_connector.isLocked():
+            print("\n\n DON*T TAKE IT \n\n")
+            canSelection = None
+            continue
         new_position = selection.getField("translation").getSFVec3f()
         new_position[1] = can_height
         canSelection.getField("translation").setSFVec3f(new_position)
@@ -488,7 +494,7 @@ while supervisor.step(timestep) != -1:
     # Update variables & check if target is still available
     if busy:
         if stage not in ["Sorting", "Release", "LiftOff"] and not robot_connector.isLocked():
-            move_dict = {"up" : move_up_dic_r, "down" : move_down_dic_r} if can_dist[0] > 1.2 else {"up" : move_up_dic_l, "down" : move_down_dic_l} 
+            move_dict = {"up" : move_up_dic_r, "down" : move_down_dic_r} if (can_dist[0] > 0.8*cr_s) else {"up" : move_up_dic_l, "down" : move_down_dic_l} 
             if index not in cansOnConveyor.keys() or candidates[index][2] != "1":
                 print("++++++++++++++ INTERRUPTED ++++++++++++++")
                 for key in stages.keys(): stages[key] = False
@@ -509,14 +515,20 @@ while supervisor.step(timestep) != -1:
 
 
     if stages["GetReady"] and positionCheck(target, sensors) and 0 < (can_dist[0]-tcp.getPosition()[0]) < 0.1*cr_s :
+         
          stages["GetReady"] = False
-         target = setPoseRobot(move_dict["down"], target_pos)      
          stages["Prepare2grap"] = True
+         target = setPoseRobot(move_dict["down"], target_pos)      
+    
+    if stages["Prepare2grap"] and (can_dist[0]-tcp.getPosition()[0]) < -0.05:
+         stages["Prepare2grap"] = False
+         stages["GetReady"] = True
 
-    if stages["Prepare2grap"] and robot_connector.getPresence():
+    if stages["Prepare2grap"] and robot_connector.getPresence():# and (can_dist[0]-tcp.getPosition()[0]) > 0.05:
          stages["Prepare2grap"] = False
          moveFingers(fingers, "close")    
          robot_connector.lock()
+         graspedCan = index
          target = setPoseRobot(move_dict["up"], target_pos)
          #target = setPoseRobot(custom_dic, "ready")
          stages["LiftOff"] = True
@@ -533,8 +545,8 @@ while supervisor.step(timestep) != -1:
         moveFingers(fingers, mode = "open") 
         robot_connector.unlock()
         target = setPoseRobot(custom_dic, candidates[index][0][1])
-        robot_correct += 1 if candidates[index][0][1] == candidates[index][0][0] else 0
-        robot_incorrect += 1 if candidates[index][0][1] != candidates[index][0][0] else 0
+        robot_correct += 2 if candidates[index][0][1] == candidates[index][0][0] else 0
+        robot_incorrect += 2 if candidates[index][0][1] != candidates[index][0][0] else 0
         
 
     if  stages["Release"] and positionCheck(target, sensors, 0.01) and not robot_connector.isLocked() :
