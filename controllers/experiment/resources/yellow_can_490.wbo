@@ -1,9 +1,9 @@
 #VRML_OBJ R2021a utf8
 DEF YELLOW_CAN Solid {
-  translation 3.1 0.87 0.490
+  translation 2.7 0.87 0.490
   children [
     Connector {
-      translation 0 0.02 0
+      translation 0 0.04 0
       rotation -1 0 0 -3.137485307179586
       model "can_grasp"
       type "passive"

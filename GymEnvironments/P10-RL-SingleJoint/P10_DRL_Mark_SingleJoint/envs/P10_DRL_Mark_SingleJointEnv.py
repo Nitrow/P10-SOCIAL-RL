@@ -10,7 +10,11 @@ import random
 import math
 import matplotlib.pyplot as plt
 from datetime import datetime
+import torch
+
 import os
+from scipy.spatial import distance
+
 #import ikpy
 #from ikpy.chain import Chain
 
@@ -34,6 +38,15 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.tv_node = self.supervisor.getFromDef("TV")
         self.can_node = self.supervisor.getFromDef("can")
         self.goal_node = self.supervisor.getFromDef("TARGET").getField("translation")
+        
+        self.tcpx = self.supervisor.getFromDef("x")
+        self.tcpy = self.supervisor.getFromDef("y")
+        self.tcpz = self.supervisor.getFromDef("z")
+        
+        self.goalx = self.supervisor.getFromDef("goalx")
+        self.goaly = self.supervisor.getFromDef("goaly")
+        self.goalz = self.supervisor.getFromDef("goalz")
+        
  
         self.tcp = self.supervisor.getFromDef('TCP')
         self.robot_pos = np.array(self.robot_node.getPosition())
@@ -77,12 +90,18 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
 
         self.actionScale = 3
         self.action_space = spaces.Box(low=-1, high=1, shape=(len(self.joint_names),), dtype=np.float32)
-        self.observation_space = spaces.Box(low=-10, high=10, shape=(len(self.joint_names)+6,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-10, high=10, shape=(24,), dtype=np.float32)
         
         self.documentation = "Action space: all joints State space: tcp pos (xyz), target pos (xyz), joint positions ."
         self.documentation += "{} - Rewards {} - Timeout at {}\n".format(self.id, self.rewardstr, str(self.timeout))
         self.saveEpisode(self.documentation)
-
+        
+        
+        
+        
+      
+        
+        
     def reset(self):
         print('\n ------------------------------------ RESET ------------------------------------ \n')
         self.supervisor.simulationReset()
@@ -93,12 +112,15 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.total_rewards = 0    
         self.done = False    
         state = self.getState()
-        self.prevdist = np.linalg.norm(np.array(self.tcp.getPosition()) - self.target)
+        self.prevdistx = distance.euclidean(self.tcpx1, self.goalx1)
+        self.prevdisty = distance.euclidean(self.tcpy1, self.goaly1)
+        self.prevdistz = distance.euclidean(self.tcpz1, self.goalz1)
         return np.asarray(state)
 
 
     def step(self, action):
-
+        
+        
         for i in range(len(self.joint_names)):
             pos = self.sensors[i].getValue()
             d_pos = self.actionScale * float(action[i]) * self.TIME_STEP / 1000
@@ -114,14 +136,27 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.supervisor.step(self.TIME_STEP)
         #self.supervisor.step(self.TIME_STEP)
         
-        self.distance = np.linalg.norm(np.array(self.tcp.getPosition()) - self.target)
-        distDifference = self.prevdist - self.distance
-        #print(self.distance)
-        self.prevdist = self.distance
-        #print("Distance: {}".format(np.linalg.norm(np.array(self.tcp.getPosition()) - self.robot_pos)))
+        
         state = self.getState()
+        
+        
+        
+        
+        
+        self.distancex = distance.euclidean(self.tcpx1, self.goalx1)
+        self.distancey = distance.euclidean(self.tcpy1, self.goaly1)
+        self.distancez = distance.euclidean(self.tcpz1, self.goalz1)
+        
+        
+        distDifference = self.prevdistx - self.distancex + self.prevdisty - self.distancey + self.prevdistz - self.distancez 
+        #print(self.distance)
+        self.prevdistx = self.distancex
+        self.prevdisty = self.distancey
+        self.prevdistz = self.distancez
+        #print("Distance: {}".format(np.linalg.norm(np.array(self.tcp.getPosition()) - self.robot_pos)))
+       
         # Normalize the distance by the maximum robot reach so it's between 0 and 1
-        reward = self.distanceDeltaReward * distDifference + (self.distanceReward * (self.distance / 1.45637)) + self.constPunishment
+        reward = (self.distanceDeltaReward * distDifference) + self.constPunishment
         #print(self.total_rewards)
         self.counter = self.counter + 1
               
@@ -130,7 +165,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
             print("Timeout")
             self.done = True
             self._setTarget()
-        if self.distance < 0.1:
+        if self.distancex  < 0.1 and self.distancey < 0.1 and self.distancez < 0.1:
             self.epOutcome = "Success"
             print("Success")
             self._setTarget()
@@ -183,7 +218,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         while distance <= 0.2 :
             x = random.choice([random.uniform(-0.4, -0.2), random.uniform(0.2, 0.4)])
             z = random.choice([random.uniform(-0.4, -0.2), random.uniform(0.2, 0.4)])
-            y = ((0.65)**2 - (x**2) - (z**2))**0.5
+            y = random.uniform(0.1, 0.3)
             
             self.target = list(self.robot_pos + np.array([x, y, z]))
             distance = np.linalg.norm(np.array(self.tcp.getPosition()) - self.target)
@@ -200,7 +235,17 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
 
 
     def getState(self):
-        return [self.sensors[i].getValue() for i in range(len(self.sensors))] + self.tcp.getPosition() + self.target 
+        
+        
+        
+        self.tcpx1 = self.tcpx.getPosition()
+        self.tcpy1 = self.tcpy.getPosition()
+        self.tcpz1 = self.tcpz.getPosition()
+        self.goalx1 = self.goalx.getPosition()
+        self.goaly1 = self.goaly.getPosition()
+        self.goalz1 = self.goalz.getPosition()
+ 
+        return [self.sensors[i].getValue() for i in range(len(self.sensors))] + self.tcpx1 + self.tcpy1 + self.tcpz1 + self.goalx1 + self.goaly1 + self.goalz1
         #return self.tcp.getPosition() + self.target 
 
 
@@ -213,3 +258,4 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         plt.plot(x, running_avg)
         plt.title('Running average of previous 100 scores')
         plt.savefig(self.figure_file)
+    

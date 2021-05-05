@@ -1,10 +1,10 @@
 #VRML_OBJ R2021a utf8
 DEF RED_ROTATED_CAN Solid {
-  translation 3.1158 0.850828 0.472056
+  translation 2.7 0.850828 0.472056
   rotation -0.16769902688333005 -0.3772630604779143 0.9107961460070095 1.33114
   children [
     Connector {
-      translation 0 0.02 0
+      translation 0 0.04 0
       rotation -1 0 0 -3.137485307179586
       model "can_grasp"
       type "passive"
