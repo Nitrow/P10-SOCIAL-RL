@@ -135,19 +135,13 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
 
         self.supervisor.step(self.TIME_STEP)
         #self.supervisor.step(self.TIME_STEP)
-        
-        
+                
         state = self.getState()
-        
-        
-        
-        
-        
+               
         self.distancex = distance.euclidean(self.tcpx1, self.goalx1)
         self.distancey = distance.euclidean(self.tcpy1, self.goaly1)
         self.distancez = distance.euclidean(self.tcpz1, self.goalz1)
-        
-        
+                
         distDifference = self.prevdistx - self.distancex + self.prevdisty - self.distancey + self.prevdistz - self.distancez 
         #print(self.distance)
         self.prevdistx = self.distancex
@@ -165,7 +159,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
             print("Timeout")
             self.done = True
             self._setTarget()
-        if self.distancex  < 0.1 and self.distancey < 0.1 and self.distancez < 0.1:
+        if self.distancex  < 0.05 and self.distancey < 0.05 and self.distancez < 0.05:
             self.epOutcome = "Success"
             print("Success")
             self._setTarget()
@@ -173,6 +167,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         if self._isCollision():
             self.epOutcome = "Collision"
             print("Collision")
+            self._setTarget()
             self.done = True
             reward += self.collisionReward
         #print(self.done)
@@ -216,8 +211,8 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         # generate a point around the circle 0.75m far from the robot, making sure it's far away 
         distance = 0
         while distance <= 0.2 :
-            x = random.choice([random.uniform(-0.4, -0.2), random.uniform(0.2, 0.4)])
-            z = random.choice([random.uniform(-0.4, -0.2), random.uniform(0.2, 0.4)])
+            x = random.choice([random.uniform(-0.4, -0.3), random.uniform(0.3, 0.4)])
+            z = random.choice([random.uniform(-0.4, -0.3), random.uniform(0.3, 0.4)])
             y = random.uniform(0.1, 0.3)
             
             self.target = list(self.robot_pos + np.array([x, y, z]))
@@ -235,17 +230,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
 
 
     def getState(self):
-        
-        
-        
-        self.tcpx1 = self.tcpx.getPosition()
-        self.tcpy1 = self.tcpy.getPosition()
-        self.tcpz1 = self.tcpz.getPosition()
-        self.goalx1 = self.goalx.getPosition()
-        self.goaly1 = self.goaly.getPosition()
-        self.goalz1 = self.goalz.getPosition()
- 
-        return [self.sensors[i].getValue() for i in range(len(self.sensors))] + self.tcpx1 + self.tcpy1 + self.tcpz1 + self.goalx1 + self.goaly1 + self.goalz1
+        return [self.sensors[i].getValue() for i in range(len(self.sensors))] + self.tcpx.getPosition() + self.tcpy.getPosition() + self.tcpz.getPosition() + self.goalx.getPosition() + self.goaly.getPosition() + self.goalz.getPosition()
         #return self.tcp.getPosition() + self.target 
 
 
