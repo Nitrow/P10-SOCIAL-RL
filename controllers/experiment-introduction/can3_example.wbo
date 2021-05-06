@@ -1,7 +1,7 @@
 #VRML_OBJ R2021a utf8
-DEF GREEN_CAN Solid {
-  translation 1.7259906738568782 0.8609967011377793 0.5499963588789711
-  rotation 0.00029132350286323604 0.0481253098108812 -0.9988412635079827 0.00011978926485415943
+DEF YELLOW_CAN Solid {
+  translation 1.7112012491140718 0.8609735080921074 0.48000000784830105
+  rotation -0.0017324139288157768 8.99526863532164e-05 0.9999984953241148 -2.0326946821684723e-05
   children [
     Connector {
       translation 0 0.04 0
@@ -13,19 +13,19 @@ DEF GREEN_CAN Solid {
     }
     Shape {
       appearance PBRAppearance {
-        baseColor 0 1 0
+        baseColor 0.929412 0.831373 0
         baseColorMap ImageTexture {
           url [
-            "textures/can_base_color_green.jpg"
+            "textures/can_base_color_yellow.jpg"
           ]
         }
         roughness 0.2
         roughnessMap ImageTexture {
           url [
-            "textures/can_base_color_green.jpg"
+            "textures/can_base_color_yellow.jpg"
           ]
         }
-        metalness 0.8
+        metalness 0.3
       }
       geometry IndexedFaceSet {
         coord Coordinate {
@@ -48,7 +48,7 @@ DEF GREEN_CAN Solid {
       }
     }
   ]
-  name "can(1)"
+  name "can(6)"
   model "can"
   boundingObject Cylinder {
     height 0.1222
@@ -60,8 +60,8 @@ DEF GREEN_CAN Solid {
     mass 0.35
   }
   recognitionColors [
-    0 1 0
+    0.309804 0.913725 1
   ]
-  linearVelocity -0.8000559376975813 -7.578325529724168e-05 3.0042585097375255e-05
-  angularVelocity 5.27667095381845e-06 -1.910169939923409e-05 0.0009344378567304421
+  linearVelocity -0.3000018866024943 7.261661908532705e-06 1.915208940768879e-07
+  angularVelocity 1.3253023028467409e-07 1.3914944657666674e-08 4.594354683425864e-06
 }

@@ -1,28 +1,20 @@
 #VRML_OBJ R2021a utf8
-DEF RED_ROTATED_CAN Solid {
-  translation 0.7390469150885319 0.8314220289857637 0.5282858993382421
-  rotation 0.6286083426544442 -0.7024299807822245 0.3338318044218024 -2.9129963092195807
+DEF GREEN_ROTATED_CAN Solid {
+  translation 0.6307186623597573 0.8314401923159517 0.5355306536427653
+  rotation -0.37582283725609444 0.11985769449965104 0.918907682014906 -1.5853736401570513
   children [
-    Connector {
-      translation 0 0.04 0
-      rotation -1 0 0 -3.137485307179586
-      model "can_grasp"
-      type "passive"
-      axisTolerance 3.14
-      rotationTolerance 3.14
-    }
     Shape {
       appearance PBRAppearance {
-        baseColor 0.901961 0.2 0.2
+        baseColor 0 1 0
         baseColorMap ImageTexture {
           url [
-            "textures/can_base_color.jpg"
+            "textures/can_base_color_green.jpg"
           ]
         }
         roughness 0.2
         roughnessMap ImageTexture {
           url [
-            "textures/can_roughness.jpg"
+            "textures/can_base_color_green.jpg"
           ]
         }
         metalness 0.8
@@ -48,7 +40,7 @@ DEF RED_ROTATED_CAN Solid {
       }
     }
   ]
-  name "can(3)"
+  name "can(5)"
   model "can"
   boundingObject Cylinder {
     height 0.1222
@@ -60,8 +52,8 @@ DEF RED_ROTATED_CAN Solid {
     mass 0.35
   }
   recognitionColors [
-    0 0 1
+    0 1 0
   ]
-  linearVelocity -0.7979892546060992 2.998371012250116e-05 -0.0026288457703330255
-  angularVelocity -0.08314052083975448 -1.9818697195467173e-05 -0.06328304347388655
+  linearVelocity -0.29926041008204235 -4.74328425870942e-06 -0.0013192528626345878
+  angularVelocity -0.04155752528019046 -1.009650855134656e-07 -0.02334469569611648
 }

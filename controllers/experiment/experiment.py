@@ -9,11 +9,11 @@ import math
 
 # easy or hard
 gameMode = "easy"
-condition = "visual"
+condition = "control"
 experiment_conditions = {"control" : [False, False, False],
                          "all"     : [True, True, True],
-                         "visual"  : [False, False, True],
-                         "written" : [True, True, False]}
+                         "written"  : [False, False, True],
+                         "visual" : [True, True, False]}
 
 # seed, maximum amount of cans, frequency, and spawn limit and conveyor speed
 gameSettings = { "medium" : [10, 40, 20, 30, 0.3], "hard" : [10, 40, 3, 20, 0.4], "easy" : [2, 40, 30, 20, 0.3]}
@@ -102,6 +102,23 @@ def generateCans():
     if pos_choice not in ["000", "999"]:
         can_reposition_dict = {"556" : 0.55, "479" : 0.48, "506" : 0.51, "490" : 0.49, "530" : 0.53}
         root_children.getMFNode(-1).getField("translation").setSFVec3f([2.7, 0.87, can_reposition_dict[pos_choice]])
+
+
+# def generateCans():
+#     global can_num, pos_choice
+#     can_num += 1
+#     can_distances = ["000", "999", "556", "479", "506", "490", "530"]
+#     can_distances.remove(pos_choice)
+#     can_colors = ["green", "yellow", "red"]
+#     pos_choice = random.choice(can_distances)
+#     can = "resources/" + random.choice(can_colors) + "_can_" + pos_choice + ".wbo"
+#     cans= ["resources/green_can_000.wbo", "resources/green_can_000.wbo", "resources/red_can_490.wbo", "resources/yellow_can_530.wbo",]
+#     can = cans[can_num]
+#     if can_num >= 3: can_num = 0
+#     root_children.importMFNode(-1, can)
+#     if pos_choice not in ["000", "999"]:
+#         can_reposition_dict = {"556" : 0.55, "479" : 0.48, "506" : 0.51, "490" : 0.49, "530" : 0.53}
+#         root_children.getMFNode(-1).getField("translation").setSFVec3f([2.7, 0.87, can_reposition_dict[pos_choice]])
 
 
 def endGame():
