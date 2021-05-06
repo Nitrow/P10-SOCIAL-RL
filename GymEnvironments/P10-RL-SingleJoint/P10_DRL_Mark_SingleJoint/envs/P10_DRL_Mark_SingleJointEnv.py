@@ -112,9 +112,9 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.total_rewards = 0    
         self.done = False    
         state = self.getState()
-        self.prevdistx = distance.euclidean(self.tcpx1, self.goalx1)
-        self.prevdisty = distance.euclidean(self.tcpy1, self.goaly1)
-        self.prevdistz = distance.euclidean(self.tcpz1, self.goalz1)
+        self.prevdistx = distance.euclidean(self.tcpx.getPosition(), self.goalx.getPosition())
+        self.prevdisty = distance.euclidean(self.tcpy.getPosition(), self.goaly.getPosition())
+        self.prevdistz = distance.euclidean(self.tcpz.getPosition(), self.goalz.getPosition())
         return np.asarray(state)
 
 
@@ -138,9 +138,9 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
                 
         state = self.getState()
                
-        self.distancex = distance.euclidean(self.tcpx1, self.goalx1)
-        self.distancey = distance.euclidean(self.tcpy1, self.goaly1)
-        self.distancez = distance.euclidean(self.tcpz1, self.goalz1)
+        self.distancex = distance.euclidean(self.tcpx.getPosition(), self.goalx.getPosition())
+        self.distancey = distance.euclidean(self.tcpy.getPosition(), self.goaly.getPosition())
+        self.distancez = distance.euclidean(self.tcpz.getPosition(), self.goalz.getPosition())
                 
         distDifference = self.prevdistx - self.distancex + self.prevdisty - self.distancey + self.prevdistz - self.distancez 
         #print(self.distance)
