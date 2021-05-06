@@ -9,6 +9,15 @@ import math
 
 random.seed(10)
 
+# easy or hard
+gameMode = "easy"
+# maximum amount of cans, frequency, and spawn limit and conveyor speed
+gameSettings = { "easy" : [40, 10, 20, 0.3], "hard" : [40, 3, 15, 0.5]}
+max_cans, freq, spawn_limit, conveyor_speed = gameSettings[gameMode]  # 20 is doable with 50 freq
+
+
+robot_reward = 1
+
 can_num = 0
 spawn_timer = 0
 spawn_limit = 20
@@ -19,23 +28,9 @@ drawIntentionLimit = 1
 drawRectangle = True
 drawText = True
 
-
 reason_dict = { 'colorError' : "Can't sort color", 
                 'graspError': "Unable to grasp", 
                 'proximityError': "Can't reach in time"}
-
-# 50-33 takes 100sec
-#max_cans = 20  # 20 is doable with 50 freq
-#freq = 50  # Less is more - 50 is doable
-max_cans = 40  # 20 is doable with 50 freq
-freq = 2  # Less is more - 50 is doable
-# from pyutil import filereplace
-# def fileChanger(textToSearch, textToReplace):
-#     for file in os.listdir("resources"):
-#         f = "resources/" + file
-#         filereplace(f, textToSearch, textToReplace)
-
-# fileChanger('translation 0 0.02', 'translation 0 0.04')
 
 
 def tryGetCratePos():
@@ -93,21 +88,6 @@ def getFirstCan(candidates):
             return key
     return False
 
-
-# def generateCans():
-#     global can_num, pos_choice
-#     can_num += 1
-#     #can_distances = ["000", "999", "555", "535", "515", "495", "475", "455"]
-#     can_distances = ["000", "999", "556", "479", "506", "490", "530"]
-#     can_distances.remove(pos_choice)
-#     can_colors = ["green", "yellow", "red"]
-#     pos_choice = random.choice(can_distances)
-#     can = "resources/" + random.choice(can_colors) + "_can_" + pos_choice + ".wbo"
-#     root_children.importMFNode(-1, can)
-#     if pos_choice not in ["000", "999"]:
-#         can_reposition_dict = {"556" : 0.55, "479" : 0.48, "506" : 0.51, "490" : 0.49, "530" : 0.53}
-#         root_children.getMFNode(-1).getField("translation").setSFVec3f([2,7, 0.87, can_reposition_dict[pos_choice]])
-
 def generateCans():
     global can_num, pos_choice
     can_num += 1
@@ -129,10 +109,10 @@ def endGame():
     supervisor.simulationSetMode(0)
 
 
-def positionCheck(pos, sens, limit = 0.2):
+def positionCheck(pos, sens, limit = 0.1):
     global movementLock
     if len(pos):
-        print("Target position at: {}, position is at {}".format(pos, [math.degrees(sens[i].getValue()) for i in range(len(pos))]))
+        #print("Target position at: {}, position is at {}".format(pos, [math.degrees(sens[i].getValue()) for i in range(len(pos))]))
         if all([abs(sens[i].getValue() - math.radians(pos[i])) < limit for i in range(len(pos))]):
             movementLock = False
             return True 
@@ -160,7 +140,7 @@ def drawImage(camera, colors, candidates):
         perceivedColor = candidates[obj_id][0][1]
         color = colors[perceivedColor] if reason != "graspError" else colors[candidates[obj_id][0][0]]
         #If the error is "graspError" and the trueColor != original
-        #print(color)
+
         color = np.rint(np.array(color)*255)
         size = np.array(obj.get_size_on_image()) + padding
         start_point = np.array(obj.get_position_on_image()) - (size / 2) 
@@ -227,7 +207,7 @@ def countCansOnConveyor(missed, cansOnConveyor):
     return cansOnConveyor, missed
 
 
-def pickTargets(cansOnConveyor, choices=5, min_dist = 0.7):
+def pickTargets(cansOnConveyor, choices=5, min_dist = 0.7, outOfReachLimit = 0.7):
     """
     Gets five targets based on 3 criteria (assessing each can):
     """
@@ -248,8 +228,10 @@ def pickTargets(cansOnConveyor, choices=5, min_dist = 0.7):
             if val[1] in ["green", "red"]:
                 if "ROTATED" in supervisor.getFromId(key).getDef():
                     reason += "graspError"
-                elif candidates[key][1][0] <= 0.7:
+                elif candidates[key][1][0] <= outOfReachLimit: # + (tcp.getPosition()[0] - candidates[key][1][0]  * conveyor_speed * (timestep/1000)):
                     reason += "proximityError"
+                #elif candidates[key][1][0] < 1.2 and  candidates[key][1][0] < 1 + np.linalg.norm(np.array(candidates[key][1][::2]) - np.array(tcp.getPosition()[::2])) > outOfReachLimit:
+                #    reason += "proximityError"
                 else:
                     top5_keys.append(key)
                     top5_dists.append(candidates[key][1][0])
@@ -276,6 +258,8 @@ def pickTargets(cansOnConveyor, choices=5, min_dist = 0.7):
     for i in range(len(top_choices)):
         candidates[top_choices[i][1]][2] = str(i+1)
 
+
+
     for keys, vals in candidates.items():
         print (keys, vals)
     print("------------------------------------")
@@ -285,7 +269,7 @@ def pickTargets(cansOnConveyor, choices=5, min_dist = 0.7):
 
 def setPoseRobot(move_dic, can_pose):
     target = []
-    print(can_pose)
+
     try:
         movementLock = True
         poses = move_dic[can_pose]
@@ -304,7 +288,8 @@ robot_connector = supervisor.getDevice("connector")
 
 timestep = int(supervisor.getBasicTimeStep())
 tcp = supervisor.getFromDef('TCP')
-cr_s = supervisor.getFromDef('CONVEYOR').getField("speed").getSFFloat() * 3 # Get the speed of the conveyor to scale the distances
+cr_s = conveyor_speed * 3
+supervisor.getFromDef('CONVEYOR').getField("speed").setSFFloat(conveyor_speed)  # Get the speed of the conveyor to scale the distances
 padding = np.array([10, 10])
 camera = Camera("camera")
 camera.enable(timestep)
@@ -370,18 +355,6 @@ movementLock = False
 stages = {"Prepare2grap" : False, "LiftOff": False, "Sorting": False, "Release" : False, "Back2Ready": False, "GetReady" : False}
 target = []
 
-# move_down_dic_l = {0.55 : [-20.15, -142.34, -51.13, -74.96, 91, 64.25],
-#                  0.53 : [-21.88, -132.16, -65.76, -70.54, 91.87, 64.25],
-#                  0.51 : [-22.86, -128.28, -72.68, -67.54, 91.88, 64.25 ],
-#                  0.49 : [-23.88, -124.65, -78.73, -65.13, 91.9, 64.25],
-#                  0.48 : [-24.48, -122.99, -81.99, -63.54, 91.91, 64.25]}
-
-# move_up_dic_l = {  0.55 : [-20.15, -144.68, -16.47, -107.28, 91.78, 64.25],
-#                  0.53 : [-21.89, -129.37, -44.87, -94.22, 91.83, 64.25],
-#                  0.51 : [-22.85, -124.38, -51.91, -92.20, 91.85, 64.25],
-#                  0.49 : [-23.88, -120.9, -48.42, -99.2, 91.85, 64.25],
-#                  0.48 : [-24.47, -118.4, -52.34, -97.79, 91.87, 64.25]}
-
 
 move_down_dic_l = {0.55 : [-12, -124.8, -67.83, -77.53, 92.25, 84],
                  0.53 : [-21.88, -132.16, -65.76, -70.54, 91.87, 64.25],
@@ -413,9 +386,7 @@ move_up_dic_r = {  0.55 : [44.1, -130.2, -33, -105.4, 91.2, 140],
 custom_dic = {  "ready" : [0, -90, -90, -90, 90, 90],
                 "green" : [120, -125, -30, -115, 90, 145],
                 "red"   : [-107.77, -119, -46.48, -102.99, 91, 145]}
-                #"red"   : [-105, -140, -18, -110, 90, 145]}
-                #"green_down" : [121.19, -146.23, -30.11, -89.79, 90, 145],
-                #"red_down" : [-105.11, -147,33, -35.63, -90.5, 90, 145]}
+
 candidates = {}
 
 move_dict = {"up" : move_up_dic_r, "down" : move_down_dic_r}
@@ -423,27 +394,35 @@ move_dict = {"up" : move_up_dic_r, "down" : move_down_dic_r}
 moveFingers(fingers)
 setPoseRobot(custom_dic, "ready")
 
+graspedCan = None
+
 robot_correct, robot_incorrect = 0, 0
 root_children = supervisor.getRoot().getField("children")
 
 robot_connector = supervisor.getDevice("connector")
 robot_connector.enablePresence(timestep)
 
+can_tcp_dist = 999
+
+
 while supervisor.step(timestep) != -1:
     if not bool(crate_pos_img["GREEN_ROBOT_CRATE"]): tryGetCratePos()
     cansOnConveyor, missed = countCansOnConveyor(missed, cansOnConveyor)
+
     candidates = pickTargets(cansOnConveyor, 3)
-    #print(cansOnConveyor)
+
     selection = supervisor.getSelected()
     selectionName = selection.getDef() if selection else ""
     selectionColor = selectionName.split('_')[0]
-    # for keys, vals in cansOnConveyor.items():
-    #     print (keys, vals)
+
     if "CAN" in selectionName:
         canSelection = selection
         canColor = selectionColor
         
     elif ("CRATE" in selectionName) and canSelection:
+        if canSelection.getId() == graspedCan and robot_connector.isLocked():
+            canSelection = None
+            continue
         new_position = selection.getField("translation").getSFVec3f()
         new_position[1] = can_height
         canSelection.getField("translation").setSFVec3f(new_position)
@@ -464,14 +443,10 @@ while supervisor.step(timestep) != -1:
         if can_num < max_cans:
             generateCans()
             spawn_timer = 0
-            #supervisor.getFromDef("PHYSICS").getField("mass").setSFFloat(0.1)
-        #pass
-    #print("Correct: {}\t Incorrect: {}\t Missed: {}\t Total: {}".format(correctSort, wrongSort, missed, correctSort-wrongSort-missed))
-    #print(onConveyorRanked(cansOnConveyor))
+
     drawImage(camera, colors, candidates)
     if can_num >= max_cans and not bool(cansOnConveyor):
         endGame()
-
 ############################################ 
 ###### R O B O T     M O V E M E N T #######
 ############################################
@@ -488,7 +463,7 @@ while supervisor.step(timestep) != -1:
     # Update variables & check if target is still available
     if busy:
         if stage not in ["Sorting", "Release", "LiftOff"] and not robot_connector.isLocked():
-            move_dict = {"up" : move_up_dic_r, "down" : move_down_dic_r} if can_dist[0] > 1.2 else {"up" : move_up_dic_l, "down" : move_down_dic_l} 
+            move_dict = {"up" : move_up_dic_r, "down" : move_down_dic_r} if (can_dist[0] > (max(0.8*cr_s,1.22)) and can_tcp_dist >= 0) else {"up" : move_up_dic_l, "down" : move_down_dic_l} 
             if index not in cansOnConveyor.keys() or candidates[index][2] != "1":
                 print("++++++++++++++ INTERRUPTED ++++++++++++++")
                 for key in stages.keys(): stages[key] = False
@@ -496,27 +471,35 @@ while supervisor.step(timestep) != -1:
                 if not getFirstCan(candidates): target = setPoseRobot(custom_dic, "ready")
             else:
                 can_dist = supervisor.getFromId(index).getField("translation").getSFVec3f()
-                
+                can_tcp_dist = can_dist[0]-tcp.getPosition()[0]
+
     if not busy and getFirstCan(candidates):
          index = getFirstCan(candidates) #####SETTING THE CAN, CAN BE REPALCED BY AN ACTUAL ID#####
          can_dist = supervisor.getFromId(index).getField("translation").getSFVec3f()
+         can_tcp_dist = can_dist[0]-tcp.getPosition()[0]
          target_pos = round(can_dist[2], 2)
-         target = setPoseRobot(move_dict["up"], target_pos) if abs(can_dist[0]-tcp.getPosition()[0]) < 0.75*cr_s else None
+         target = setPoseRobot(move_dict["up"], target_pos) if abs(can_tcp_dist) < 0.75*cr_s else None
          stages["GetReady"] = True if target else False   
 
     if stages["GetReady"] and positionCheck(target, sensors):
          target = setPoseRobot(move_dict["up"], target_pos)
+         print(can_tcp_dist)
 
-
-    if stages["GetReady"] and positionCheck(target, sensors) and 0 < (can_dist[0]-tcp.getPosition()[0]) < 0.1*cr_s :
+    if stages["GetReady"] and positionCheck(target, sensors) and 0 < (can_tcp_dist) < 0.1*cr_s :
+         
          stages["GetReady"] = False
-         target = setPoseRobot(move_dict["down"], target_pos)      
          stages["Prepare2grap"] = True
+         target = setPoseRobot(move_dict["down"], target_pos)      
+    
+    if stages["Prepare2grap"] and (can_tcp_dist) < -0.05:
+         stages["Prepare2grap"] = False
+         stages["GetReady"] = True
 
-    if stages["Prepare2grap"] and robot_connector.getPresence():
+    if stages["Prepare2grap"] and robot_connector.getPresence():# and (can_dist[0]-tcp.getPosition()[0]) > 0.05:
          stages["Prepare2grap"] = False
          moveFingers(fingers, "close")    
          robot_connector.lock()
+         graspedCan = index
          target = setPoseRobot(move_dict["up"], target_pos)
          #target = setPoseRobot(custom_dic, "ready")
          stages["LiftOff"] = True
@@ -533,10 +516,11 @@ while supervisor.step(timestep) != -1:
         moveFingers(fingers, mode = "open") 
         robot_connector.unlock()
         target = setPoseRobot(custom_dic, candidates[index][0][1])
-        robot_correct += 1 if candidates[index][0][1] == candidates[index][0][0] else 0
-        robot_incorrect += 1 if candidates[index][0][1] != candidates[index][0][0] else 0
+        robot_correct += robot_reward if candidates[index][0][1] == candidates[index][0][0] else 0
+        robot_incorrect += robot_reward if candidates[index][0][1] != candidates[index][0][0] else 0
         
 
     if  stages["Release"] and positionCheck(target, sensors, 0.01) and not robot_connector.isLocked() :
         target = setPoseRobot(custom_dic, "ready")
+        stages["Release"] = False
         stages["GetReady"] = True
