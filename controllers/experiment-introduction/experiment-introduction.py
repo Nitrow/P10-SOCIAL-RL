@@ -12,7 +12,7 @@ import math
 # POS: 1.6931910127331369 1.781756528011428 5.350749519514143
 # ROT: -0.9975109062294765 -0.05050270631532978 0.049208420093273746 0.06363818669844469
 #condition = ["control", "all", "visual", "written"]
-condition = "written"
+condition = "all"
 
 supervisor = Supervisor()
 timestep = int(supervisor.getBasicTimeStep())
@@ -48,7 +48,7 @@ while supervisor.step(timestep) != -1:
 		display_explanation.setFont("Lucida Console", 32, True)
 		display_explanation.drawText("In this experiment, your task is to", 20, 160)
 		display_explanation.drawText("sort different aluminium cans in col-", 20, 214)
-		display_explanation.drawText("laboriation with a UR-3 manipulator.", 20, 266)
+		display_explanation.drawText("laboriation with an UR-3 manipulator.", 20, 266)
 		display_explanation.drawText("There are three types of cans:", 20, 366)
 		display_explanation.drawText("Yellow", 200, 466)
 		display_explanation.drawText("Red", 500, 466)
@@ -256,7 +256,7 @@ while supervisor.step(timestep) != -1:
 			x += 50
 			display_explanation.drawText("with 1 first", y, x)
 
-	if (screen == 7 and condition == "control") or (screen == 10 and condition == "all") or (screen == 8 and condition == "visual"):
+	if (screen == 7 and condition == "control") or (screen == 10 and condition in ["all", "written"]) or (screen == 8 and condition == "visual"):
 		display_explanation.setColor(0xFFFFFF)
 		display_explanation.fillRectangle(0, 0, display_explanation.getWidth(), display_explanation.getHeight())
 		display_explanation.setColor(0x000000)
