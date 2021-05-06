@@ -8,20 +8,20 @@ import os
 import math
 
 # easy or hard
-gameMode = "intro"
-condition = "all"
+gameMode = "easy"
+condition = "visual"
 experiment_conditions = {"control" : [False, False, False],
                          "all"     : [True, True, True],
                          "visual"  : [False, False, True],
                          "written" : [True, True, False]}
 
 # seed, maximum amount of cans, frequency, and spawn limit and conveyor speed
-gameSettings = { "easy" : [10, 40, 20, 30, 0.3], "hard" : [10, 40, 3, 15, 0.5], "intro" : [1, 40, 10, 10, 0.8]}
+gameSettings = { "medium" : [10, 40, 20, 30, 0.3], "hard" : [10, 40, 3, 20, 0.4], "easy" : [2, 40, 30, 20, 0.3]}
 rseed, max_cans, freq, spawn_limit, conveyor_speed = gameSettings[gameMode]  # 20 is doable with 50 freq
 random.seed(rseed)
 #random.seed(rseed)
 
-robot_reward = 1
+robot_reward = 2
 
 can_num = 0
 spawn_timer = 0

@@ -12,7 +12,7 @@ import math
 # POS: 1.6931910127331369 1.781756528011428 5.350749519514143
 # ROT: -0.9975109062294765 -0.05050270631532978 0.049208420093273746 0.06363818669844469
 #condition = ["control", "all", "visual", "written"]
-condition = "all"
+condition = "control"
 
 supervisor = Supervisor()
 timestep = int(supervisor.getBasicTimeStep())
@@ -97,7 +97,6 @@ while supervisor.step(timestep) != -1:
 		display_explanation.setColor(0xFFFFFF)
 		display_explanation.fillRectangle(0, 0, display_explanation.getWidth(), display_explanation.getHeight())
 		display_explanation.setColor(0x000000)
-		display_explanation.drawText("Well done! ", 20, 50)
 		display_explanation.drawText("The robot will also sort cans, that ", 20, 164)
 		display_explanation.drawText("are either red or green.", 20, 214)
 		display_explanation.drawText("The cans will arrive from the conve-", 20, 336)
@@ -107,39 +106,37 @@ while supervisor.step(timestep) != -1:
 		display_explanation.drawText("and -1 point for each mistake or ", 20, 576)
 		display_explanation.drawText("missed can.", 20, 626)
 
+	# if screen == 3:
+	# 	display_explanation.setColor(0xFFFFFF)
+	# 	display_explanation.fillRectangle(0, 0, display_explanation.getWidth(), display_explanation.getHeight())
+	# 	display_explanation.setColor(0x000000)
+	# 	x = 100
+	# 	display_explanation.drawText("The robot is controlled by a specific", 20, x)
+	# 	x += 50
+	# 	display_explanation.drawText("type of machine learning algorithm ", 20, x)
+	# 	x += 50
+	# 	display_explanation.drawText("called reinforcement learning, where", 20, x)
+	# 	x += 50
+	# 	display_explanation.drawText("the robot tries to reinforce positive", 20, x)
+	# 	x += 50
+	# 	display_explanation.drawText("behavior, which in this case is", 20, x)
+	# 	x += 50
+	# 	display_explanation.drawText("sorting the cans correctly.", 20, x)
+	# 	x += 100
+	# 	display_explanation.drawText("It is therefore preferred to let the ", 20, x)
+	# 	x += 50
+	# 	display_explanation.drawText("robot sort as many cans correctly as ", 20, x)
+	# 	x += 50
+	# 	display_explanation.drawText("possible, while preventing it from", 20, x)
+	# 	x += 50
+	# 	display_explanation.drawText("making errors.", 20, x)
+
 	if screen == 3:
 		display_explanation.setColor(0xFFFFFF)
 		display_explanation.fillRectangle(0, 0, display_explanation.getWidth(), display_explanation.getHeight())
 		display_explanation.setColor(0x000000)
 		x = 100
-		display_explanation.drawText("The robot is controlled by a specific", 20, x)
-		x += 50
-		display_explanation.drawText("type of machine learning algorithm ", 20, x)
-		x += 50
-		display_explanation.drawText("called reinforcement learning, where", 20, x)
-		x += 50
-		display_explanation.drawText("the robot tries to reinforce positive", 20, x)
-		x += 50
-		display_explanation.drawText("behavior, which in this case is", 20, x)
-		x += 50
-		display_explanation.drawText("sorting the cans correctly.", 20, x)
-		x += 100
-		display_explanation.drawText("It is therefore preferred to let the ", 20, x)
-		x += 50
-		display_explanation.drawText("robot sort as many cans correctly as ", 20, x)
-		x += 50
-		display_explanation.drawText("possible, while preventing it from", 20, x)
-		x += 50
-		display_explanation.drawText("making errors.", 20, x)
-
-	if screen == 4:
-		display_explanation.setColor(0xFFFFFF)
-		display_explanation.fillRectangle(0, 0, display_explanation.getWidth(), display_explanation.getHeight())
-		display_explanation.setColor(0x000000)
-		x = 100
-		display_explanation.drawText("To make this reflected in the points", 20, x)
-		x += 50
-		display_explanation.drawText("you score, each correctly sorted can", 20, x)
+		display_explanation.drawText("Each correctly sorted can", 20, x)
 		x += 50
 		display_explanation.drawText("that is sorted by the robot is worth", 20, x)
 		x += 50
@@ -150,7 +147,8 @@ while supervisor.step(timestep) != -1:
 		display_explanation.drawText("mistake.", 20, x)
 
 
-	if screen == 5:
+
+	if screen == 4:
 		#rot: -0.9975109062294765 -0.05050270631532978 0.049208420093273746 0.06363818669844469
 		#pos: 1.690983429298919 1.8240480779136725 6.016126696620077
 		viewNode.getField("position").setSFVec3f([1.690983429298919, 1.8240480779136725, 6.016126696620077])
@@ -171,7 +169,7 @@ while supervisor.step(timestep) != -1:
 		x += 50
 		display_explanation.drawText("example of the camera view.", 20, x)
 
-	if screen == 6:
+	if screen == 5:
 		if importCans:
 			root_children.importMFNode(-1, "can1_example.wbo")
 			root_children.importMFNode(-1, "can2_example.wbo")
@@ -187,81 +185,80 @@ while supervisor.step(timestep) != -1:
 		display_explanation.imageDelete(ir)
 
 
-	if screen == 7 and condition in ["all", "written"]:
-		# display_explanation.setColor(0xFFFFFF)
-		# display_explanation.fillRectangle(0, 0, display_explanation.getWidth(), display_explanation.getHeight())
-		# display_explanation.setColor(0x000000)
-		x = 500
-		y = 20
-		display_explanation.setColor(0xFFFFFF)
-		display_explanation.drawText("The robot is currently", y, x)
-		x += 50
-		display_explanation.drawText("unable to grasp cans that", y, x)
-		x += 50
-		display_explanation.drawText("are not standing upright.", y, x)
-		x = 500
-		y = 450
-		# display_explanation.drawText("It also recognises", y, x)
-		# x += 50
-		# display_explanation.drawText("if the color doesn't", y, x)
-		# x += 50
-		# display_explanation.drawText("match", y, x)
+	# if screen == 7 and condition in ["all", "written"]:
+	# 	# display_explanation.setColor(0xFFFFFF)
+	# 	# display_explanation.fillRectangle(0, 0, display_explanation.getWidth(), display_explanation.getHeight())
+	# 	# display_explanation.setColor(0x000000)
+	# 	x = 500
+	# 	y = 20
+	# 	display_explanation.setColor(0xFFFFFF)
+	# 	display_explanation.drawText("The robot is currently", y, x)
+	# 	x += 50
+	# 	display_explanation.drawText("unable to grasp cans that", y, x)
+	# 	x += 50
+	# 	display_explanation.drawText("are not standing upright.", y, x)
+	# 	x = 500
+	# 	y = 450
+	# 	# display_explanation.drawText("It also recognises", y, x)
+	# 	# x += 50
+	# 	# display_explanation.drawText("if the color doesn't", y, x)
+	# 	# x += 50
+	# 	# display_explanation.drawText("match", y, x)
 
-	if screen == 8 and condition in ["all", "written"]:
-		ir = display_explanation.imageLoad('tmp-' + condition + '.jpg')
-		display_explanation.imagePaste(ir, 0, 0, False)
-		display_explanation.imageDelete(ir)
+	# if screen == 8 and condition in ["all", "written"]:
+	# 	ir = display_explanation.imageLoad('tmp-' + condition + '.jpg')
+	# 	display_explanation.imagePaste(ir, 0, 0, False)
+	# 	display_explanation.imageDelete(ir)
 
-		display_explanation.setColor(0xFFFFFF)
-		x = 500
-		y = 350
-		display_explanation.drawText("It also recognises", y, x)
-		x += 50
-		display_explanation.drawText("if the color is not", y, x)
-		x += 50
-		display_explanation.drawText("green or red.", y, x)
+	# 	display_explanation.setColor(0xFFFFFF)
+	# 	x = 500
+	# 	y = 350
+	# 	display_explanation.drawText("It also recognises", y, x)
+	# 	x += 50
+	# 	display_explanation.drawText("if the color is not", y, x)
+	# 	x += 50
+	# 	display_explanation.drawText("green or red.", y, x)
 
 
-	elif (screen == 9 and condition in ["all", "written"]) or (screen == 7 and condition == "visual"):
-		ir = display_explanation.imageLoad('tmp-' + condition + '.jpg')
-		display_explanation.imagePaste(ir, 0, 0, False)
-		display_explanation.imageDelete(ir)
-		x = 50
-		y = 450
-		display_explanation.setColor(0xFFFFFF)
-		display_explanation.drawText("As you see, the", y, x)
-		x += 50
-		display_explanation.drawText("robot's perception", y, x)
-		x += 50
-		display_explanation.drawText("is not 100% accurate,", y, x)
-		x += 50
-		display_explanation.drawText("and sometimes it can", y, x)
-		x += 50
-		display_explanation.drawText("make mistakes when ", y, x)
-		x += 50
-		display_explanation.drawText("recognising colors.", y, x)
+	# elif (screen == 9 and condition in ["all", "written"]) or (screen == 7 and condition == "visual"):
+	# 	ir = display_explanation.imageLoad('tmp-' + condition + '.jpg')
+	# 	display_explanation.imagePaste(ir, 0, 0, False)
+	# 	display_explanation.imageDelete(ir)
+	# 	x = 50
+	# 	y = 450
+	# 	display_explanation.setColor(0xFFFFFF)
+	# 	display_explanation.drawText("As you see, the", y, x)
+	# 	x += 50
+	# 	display_explanation.drawText("robot's perception", y, x)
+	# 	x += 50
+	# 	display_explanation.drawText("is not 100% accurate,", y, x)
+	# 	x += 50
+	# 	display_explanation.drawText("and sometimes it can", y, x)
+	# 	x += 50
+	# 	display_explanation.drawText("make mistakes when ", y, x)
+	# 	x += 50
+	# 	display_explanation.drawText("recognising colors.", y, x)
 
-		x = 450
-		y = 450
-		if condition in ["all", "written"]:
-			display_explanation.drawText("The number reprents", y, x)
-			x += 50
-			display_explanation.drawText("the rank the robot", y, x)
-			x += 50
-			display_explanation.drawText("gives to the can.", y, x)
-			x += 50
-			display_explanation.drawText("It always tries to", y, x)
-			x += 50
-			display_explanation.drawText("take the one labelled", y, x)
-			x += 50
-			display_explanation.drawText("with 1 first", y, x)
+	# 	x = 450
+	# 	y = 450
+	# 	if condition in ["all", "written"]:
+	# 		display_explanation.drawText("The number reprents", y, x)
+	# 		x += 50
+	# 		display_explanation.drawText("the rank the robot", y, x)
+	# 		x += 50
+	# 		display_explanation.drawText("gives to the can.", y, x)
+	# 		x += 50
+	# 		display_explanation.drawText("It always tries to", y, x)
+	# 		x += 50
+	# 		display_explanation.drawText("take the one labelled", y, x)
+	# 		x += 50
+	# 		display_explanation.drawText("with 1 first", y, x)
 
-	if (screen == 7 and condition == "control") or (screen == 10 and condition in ["all", "written"]) or (screen == 8 and condition == "visual"):
+	if screen == 6:
 		display_explanation.setColor(0xFFFFFF)
 		display_explanation.fillRectangle(0, 0, display_explanation.getWidth(), display_explanation.getHeight())
 		display_explanation.setColor(0x000000)
 		x = 100
-		display_explanation.setFont("Lucida Console", 32, True)
 		display_explanation.drawText("Your task is to prevent the mistakes,", 20, x)
 		x += 50
 		display_explanation.drawText("while performing the sorting task.", 20, x)
@@ -272,9 +269,18 @@ while supervisor.step(timestep) != -1:
 		x += 50
 		display_explanation.drawText("2 minutes to complete.", 20, x)
 		x += 100
-		display_explanation.drawText("Your score will be displayed in the", 20, x)
+		display_explanation.drawText("As it is a collaborative work, you", 20, x)
 		x += 50
-		display_explanation.drawText("end of each run.", 20, x)
+		display_explanation.drawText("will collect scores together.", 20, x)
 		x += 100
-		display_explanation.setFont("Lucida Console", 48, True)
-		display_explanation.drawText("Good luck!", 20, x)
+		display_explanation.drawText("Your collective score will be", 20, x)
+		x += 50
+		display_explanation.drawText("displayed in the end of each run.", 20, x)
+	if screen == 7:
+		display_explanation.setColor(0xFFFFFF)
+		display_explanation.fillRectangle(0, 0, display_explanation.getWidth(), display_explanation.getHeight())
+		display_explanation.setColor(0x000000)
+		x = 350
+		y = 250
+		display_explanation.setFont("Lucida Console", 64, True)
+		display_explanation.drawText("Good luck!", y, x)
