@@ -7,26 +7,28 @@ import random
 import os
 import math
 
-random.seed(10)
-
 # easy or hard
-gameMode = "easy"
-# maximum amount of cans, frequency, and spawn limit and conveyor speed
-gameSettings = { "easy" : [40, 10, 20, 0.3], "hard" : [40, 3, 15, 0.5]}
-max_cans, freq, spawn_limit, conveyor_speed = gameSettings[gameMode]  # 20 is doable with 50 freq
+gameMode = "intro"
+condition = "all"
+experiment_conditions = {"control" : [False, False, False],
+                         "all"     : [True, True, True],
+                         "visual"  : [False, False, True],
+                         "written" : [True, True, False]}
 
+# seed, maximum amount of cans, frequency, and spawn limit and conveyor speed
+gameSettings = { "easy" : [10, 40, 20, 30, 0.3], "hard" : [10, 40, 3, 15, 0.5], "intro" : [1, 40, 10, 10, 0.8]}
+rseed, max_cans, freq, spawn_limit, conveyor_speed = gameSettings[gameMode]  # 20 is doable with 50 freq
+random.seed(rseed)
+#random.seed(rseed)
 
 robot_reward = 1
 
 can_num = 0
 spawn_timer = 0
-spawn_limit = 20
 pos_choice = "000"
 
-drawIntention = True
+drawIntention, drawRectangle, drawText = experiment_conditions[condition]
 drawIntentionLimit = 1
-drawRectangle = True
-drawText = True
 
 reason_dict = { 'colorError' : "Can't sort color", 
                 'graspError': "Unable to grasp", 
