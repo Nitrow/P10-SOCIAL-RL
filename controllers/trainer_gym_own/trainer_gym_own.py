@@ -14,7 +14,7 @@ from P10_RL_env_v01.envs import P10RLEnv
 
 if __name__ == '__main__':
 
-    n_games = 2500
+    n_games = 10000
     dt = 32
     env = P10_DRL_Mark_SingleJointEnv()
     #env = P10_DRL_Mark_SimpleEnv()

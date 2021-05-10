@@ -18,10 +18,10 @@ counter = 0
 max_iter = 30
 
 supervisor = Supervisor()
-robot_node = supervisor.getFromDef("UR3-1")
+robot_node = supervisor.getFromDef("UR3")
 
 
-trans_field = robot_node.getField("translation")
+#trans_field = robot_node.getField("translation")
 counter = 1
 
 joint_names = [ 'shoulder_pan_joint',
@@ -52,8 +52,16 @@ while supervisor.step(TIME_STEP) != -1:
     counter += 1
     #print(counter)
     
-    for i in range(len(motors)):
-        motors[i].setVelocity(dir)
+    
+    motors[0].setVelocity(0)
+    motors[1].setVelocity(1)
+    motors[2].setVelocity(0)
+    motors[3].setVelocity(0)
+    motors[4].setVelocity(0)
+    motors[5].setVelocity(0)
+    
+    
+    #print(robot_node.getNumberOfContactPoints(True))
         
     if counter > max_iter:
         counter = 0
