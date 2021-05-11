@@ -34,9 +34,6 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.supervisor = Supervisor()
         self.TIME_STEP = int(self.supervisor.getBasicTimeStep())
         self.robot_node = self.supervisor.getFromDef("UR3")
-        self.conveyor_node = self.supervisor.getFromDef("conveyor")
-        self.tv_node = self.supervisor.getFromDef("TV")
-        self.can_node = self.supervisor.getFromDef("can")
         self.goal_node = self.supervisor.getFromDef("TARGET").getField("translation")
         
         self.tcpx = self.supervisor.getFromDef("x")
@@ -51,7 +48,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.tcp = self.supervisor.getFromDef('TCP')
         self.robot_pos = np.array(self.robot_node.getPosition())
         
-        self.timeout = 2000
+        self.timeout = 300
         
         self.joint_names = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
         #self.joint_names = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
@@ -60,11 +57,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.sensors = [0] * len(self.joint_names)
         
         self.touch_sensors = [0] * 7#(len(self.joint_names)+1)
-
-        self._getMotors()
-        self._getSensors()
-        
-        
+     
         self.done = True
         self.prev_dist = 0
         
@@ -84,13 +77,15 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         #print(self.goal_node.getSFVec3f())
         self._setTarget()
         self.oldDistance = 0
-        self.distance = 0
+        self.distancex = 0
+        self.distancey = 0
+        self.distancez = 0
         self.tcp_pos_world = self.tcp.getPosition()
         self.counter = 0
 
         self.actionScale = 3
         self.action_space = spaces.Box(low=-1, high=1, shape=(len(self.joint_names),), dtype=np.float32)
-        self.observation_space = spaces.Box(low=-10, high=10, shape=(24,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-10, high=10, shape=(33,), dtype=np.float32)
         
         self.documentation = "Action space: all joints State space: tcp pos (xyz), target pos (xyz), joint positions ."
         self.documentation += "{} - Rewards {} - Timeout at {}\n".format(self.id, self.rewardstr, str(self.timeout))
@@ -106,43 +101,46 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         print('\n ------------------------------------ RESET ------------------------------------ \n')
         self.supervisor.simulationReset()
         self.counter = 0
+        
+        self._getMotors()
+        self._getSensors()
+        
+        self.supervisor.step(self.TIME_STEP) 
 
         self.supervisor.step(self.TIME_STEP)
         self.goal_node.setSFVec3f(self.target)
+        self.supervisor.step(self.TIME_STEP) 
         self.total_rewards = 0    
         self.done = False    
-        state = self.getState()
         self.prevdistx = distance.euclidean(self.tcpx.getPosition(), self.goalx.getPosition())
         self.prevdisty = distance.euclidean(self.tcpy.getPosition(), self.goaly.getPosition())
         self.prevdistz = distance.euclidean(self.tcpz.getPosition(), self.goalz.getPosition())
+        state = self.getState()
         return np.asarray(state)
 
 
     def step(self, action):
+        #print(self.counter)
         
-        
+        self._getMotors()
+        self._getSensors()
         for i in range(len(self.joint_names)):
-            pos = self.sensors[i].getValue()
-            d_pos = self.actionScale * float(action[i]) * self.TIME_STEP / 1000
-            # print("Current position {}\t Action: {}\t Total: {}\n".format(pos, d_pos, pos+d_pos))
-            if pos + d_pos > 6.2831:
-                new_pos = 6.2831
-            elif pos + d_pos < -6.2831:
-                new_pos = -6.2831
-            else:
-                new_pos = pos + d_pos
-            self.motors[i].setPosition(new_pos)
+            self.motors[i].setVelocity(float(action[i]))
+        
 
-        self.supervisor.step(self.TIME_STEP)
-        #self.supervisor.step(self.TIME_STEP)
-                
+        
+        self.supervisor.step(self.TIME_STEP)   
+           
         state = self.getState()
+        
+        
+        distDifferencex = self.prevdistx - self.distancex 
+        distDifferencey = self.prevdisty - self.distancey 
+        distDifferencez = self.prevdistz - self.distancez 
+           
+        
                
-        self.distancex = distance.euclidean(self.tcpx.getPosition(), self.goalx.getPosition())
-        self.distancey = distance.euclidean(self.tcpy.getPosition(), self.goaly.getPosition())
-        self.distancez = distance.euclidean(self.tcpz.getPosition(), self.goalz.getPosition())
-                
-        distDifference = self.prevdistx - self.distancex + self.prevdisty - self.distancey + self.prevdistz - self.distancez 
+
         #print(self.distance)
         self.prevdistx = self.distancex
         self.prevdisty = self.distancey
@@ -150,7 +148,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         #print("Distance: {}".format(np.linalg.norm(np.array(self.tcp.getPosition()) - self.robot_pos)))
        
         # Normalize the distance by the maximum robot reach so it's between 0 and 1
-        reward = (self.distanceDeltaReward * distDifference) + self.constPunishment
+        reward = (self.distanceDeltaReward * distDifferencex) +  (self.distanceDeltaReward * distDifferencey) + (self.distanceDeltaReward * distDifferencez) + self.constPunishment
         #print(self.total_rewards)
         self.counter = self.counter + 1
               
@@ -163,6 +161,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
             self.epOutcome = "Success"
             print("Success")
             self._setTarget()
+            self.done = True
             reward += self.successReward
         if self._isCollision():
             self.epOutcome = "Collision"
@@ -203,6 +202,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
             # Get motors
             self.motors[i] = self.supervisor.getDevice(self.joint_names[i])
             self.motors[i].setPosition(float('inf'))
+            self.motors[i].setVelocity(0)
             # Get sensors and enable them
             self.sensors[i] = self.supervisor.getDevice(self.joint_names[i]+'_sensor')
             self.sensors[i].enable(self.TIME_STEP)
@@ -230,7 +230,12 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
 
 
     def getState(self):
-        return [self.sensors[i].getValue() for i in range(len(self.sensors))] + self.tcpx.getPosition() + self.tcpy.getPosition() + self.tcpz.getPosition() + self.goalx.getPosition() + self.goaly.getPosition() + self.goalz.getPosition()
+    
+    
+        self.distancex = distance.euclidean(self.tcpx.getPosition(), self.goalx.getPosition())
+        self.distancey = distance.euclidean(self.tcpy.getPosition(), self.goaly.getPosition())
+        self.distancez = distance.euclidean(self.tcpz.getPosition(), self.goalz.getPosition())
+        return [self.sensors[i].getValue() for i in range(len(self.sensors))] + [self.motors[i].getVelocity() for i in range(len(self.motors))]  + self.tcpx.getPosition() + self.tcpy.getPosition() + self.tcpz.getPosition() + self.goalx.getPosition() + self.goaly.getPosition() + self.goalz.getPosition() + [self.distancex, self.distancey, self.distancez]
         #return self.tcp.getPosition() + self.target 
 
 

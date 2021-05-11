@@ -22,8 +22,8 @@ motor2 = robot.getDevice('shoulder_lift_joint')
 ds2 = robot.getDevice('shoulder_lift_joint_sensor')
 ds2.enable(timestep)
 
-pos1 = 2
-pos2 = 2
+supervisor = Supervisor()
+robot_node = supervisor.getFromDef("UR3")
 
 velocity = 3.14
 # Main loop:
@@ -34,11 +34,58 @@ while robot.step(timestep) != -1:
     val1 = ds1.getValue()
     val2 = ds2.getValue()
 
-    # Process sensor data here.
-    motor1.setPosition(pos1)
-    motor2.setPosition(pos2)
-    # Enter here functions to send actuator commands, like:
-    #motor1.setVelocity(velocity)
-    #motor2.setVelocity(velocity)
+#trans_field = robot_node.getField("translation")
+counter = 1
+
+joint_names = [ 'shoulder_pan_joint',
+                'shoulder_lift_joint',
+                'elbow_joint',
+                'wrist_1_joint',
+                'wrist_2_joint',
+                'wrist_3_joint']
+                
+motors = [0] * len(joint_names)
+sensors = [0] * len(joint_names)
+ 
+for i in range(len(joint_names)):
+    # Get motors
+    motors[i] = supervisor.getDevice(joint_names[i])
+    motors[i].setPosition(float('inf'))
+    #motors[i].setPosition(float('inf'))
+    #motors[i].setVelocity(1 * MAX_SPEED)
+
+    # Get sensors and enable them
+    sensors[i] = supervisor.getDevice(joint_names[i]+'_sensor')
+    sensors[i].enable(TIME_STEP)
+
+
+dir = 2
+
+while supervisor.step(TIME_STEP) != -1:
+    counter += 1
+    #print(counter)
     
-# Enter here exit cleanup code.
+    
+    motors[0].setVelocity(0)
+    motors[1].setVelocity(1)
+    motors[2].setVelocity(0)
+    motors[3].setVelocity(0)
+    motors[4].setVelocity(0)
+    motors[5].setVelocity(0)
+    
+    
+    #print(robot_node.getNumberOfContactPoints(True))
+        
+    if counter > max_iter:
+        counter = 0
+        dir *=-1
+        
+        #supervisor.simulationReset()
+        #conveyor_node.restartController()
+        #tv_node.restartController()
+    # read sensors outputs
+    # print("Sensor outputs:\n")
+    # readings = ""
+    # for i in range(len(joint_names)):
+        # readings += '\t' + str(sensors[i].getValue())
+    # print(readings + '\n')
