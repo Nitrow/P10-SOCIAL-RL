@@ -22,8 +22,10 @@ motor2 = robot.getDevice('ghost_shoulder_lift_joint')
 ds2 = robot.getDevice('ghost_shoulder_lift_joint_sensor')
 ds2.enable(timestep)
 
+pos1 = 2
+pos2 = 2
 
-velocity = 3.14
+velocity = 1
 # Main loop:
 # - perform simulation steps until Webots is stopping the controller
 while robot.step(timestep) != -1:
@@ -33,8 +35,10 @@ while robot.step(timestep) != -1:
     val2 = ds2.getValue()
 
     # Process sensor data here.
-    motor1.setPosition(float('inf'))
-    motor2.setPosition(float('inf'))
+    #motor1.setPosition(float('inf'))
+    #motor2.setPosition(float('inf'))
+    motor1.setPosition(pos1)
+    motor2.setPosition(pos2)
     # Enter here functions to send actuator commands, like:
     motor1.setVelocity(velocity)
     motor2.setVelocity(velocity)

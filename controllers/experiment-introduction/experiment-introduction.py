@@ -12,7 +12,7 @@ import math
 # POS: 1.6931910127331369 1.781756528011428 5.350749519514143
 # ROT: -0.9975109062294765 -0.05050270631532978 0.049208420093273746 0.06363818669844469
 #condition = ["control", "all", "visual", "written"]
-condition = "written"
+condition = "visual"
 
 supervisor = Supervisor()
 timestep = int(supervisor.getBasicTimeStep())
@@ -145,8 +145,10 @@ while supervisor.step(timestep) != -1:
 		display_explanation.drawText("two points if the robot makes a", 20, x)
 		x += 50
 		display_explanation.drawText("mistake.", 20, x)
-
-
+		x += 100
+		display_explanation.drawText("Your overall objective is to", 20, x)
+		x += 50
+		display_explanation.drawText("maximize your collective score.", 20, x)
 
 	if screen == 4:
 		#rot: -0.9975109062294765 -0.05050270631532978 0.049208420093273746 0.06363818669844469
@@ -263,9 +265,9 @@ while supervisor.step(timestep) != -1:
 		x += 50
 		display_explanation.drawText("while performing the sorting task.", 20, x)
 		x += 100
-		display_explanation.drawText("There will be 3 runs of increasing", 20, x)
+		display_explanation.drawText("There will be 2 runs of increasing", 20, x)
 		x += 50
-		display_explanation.drawText("difficulty. Each run takes around", 20, x)
+		display_explanation.drawText("difficulty. Both runs take around", 20, x)
 		x += 50
 		display_explanation.drawText("2 minutes to complete.", 20, x)
 		x += 100
