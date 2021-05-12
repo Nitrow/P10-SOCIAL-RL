@@ -8,8 +8,9 @@ import os
 import math
 
 # easy or hard
-gameMode = "medium"
+gameMode = "test"    
 condition = "visual"
+
 # user correct, user incorrect, robot correct, robot incorrect, miss
 experiment_conditions = {"control" : [False, False, False],
                          "all"     : [True, True, True],
@@ -17,14 +18,12 @@ experiment_conditions = {"control" : [False, False, False],
                          "visual" : [True, True, False]}
 
 # seed, maximum amount of cans, frequency, and spawn limit and conveyor speed
-gameSettings = { "medium" : [10, 40, 20, 30, 0.3], "easy" : [2, 40, 30, 20, 0.3], "test" : [1, 2, 50, 50, 0.5]}
+gameSettings = { 2 : [10, 40, 20, 30, 0.3], 1 : [2, 40, 30, 20, 0.3], "test" : [1, 2, 50, 50, 0.5]}
 rseed, max_cans, freq, spawn_limit, conveyor_speed = gameSettings[gameMode]  # 20 is doable with 50 freq
 random.seed(rseed)
 #random.seed(rseed)
 
-red = 0
-yellow = 0
-green = 0
+colorCount = {"red" : 0, "yellow" : 0, "green" : 0, "red_lying" : 0, "yellow_lying" : 0, "green_lying" : 0}
 
 robot_reward = 2
 
@@ -106,15 +105,19 @@ def generateCans():
     can_distances.remove(pos_choice)
     can_colors = ["green", "yellow", "red"]
     pos_choice = random.choice(can_distances)
+
     can_color = random.choice(can_colors)
+    colorCount[can_color] += 1
     can = "resources/" + can_color + "_can_" + pos_choice + ".wbo"
     root_children.importMFNode(-1, can)
     if pos_choice not in ["000", "999"]:
         can_reposition_dict = {"556" : 0.55, "479" : 0.48, "506" : 0.51, "490" : 0.49, "530" : 0.53}
         root_children.getMFNode(-1).getField("translation").setSFVec3f([2.7, 0.87, can_reposition_dict[pos_choice]])
+        return
     elif can_color != "yellow":
         mistakeDic["grasp"] += 1
         mistakeCanDic[root_children.getMFNode(-1).getId()] = "grasp"
+    colorCount[can_color+"_lying"] += 1
 
 # def generateCans():
 #     global can_num, pos_choice
@@ -137,14 +140,21 @@ def endGame():
     [supervisor.step(64) for x in range(10)]
     for i in recordLib:
         print (i, recordLib[i])
-    print("-------------------------------")
-    print("-------------Mistakes-----------")
-    for i in mistakeDic:
-        print((i, mistakeDic[i]))
-    print("----------------------------------------")
-    print("----------MISTAKES PREVENTED -----------")
+    # print("-------------------------------")
+    # print("-------------Mistakes-----------")
+    # for i in mistakeDic:
+    #     print((i, mistakeDic[i]))
+    # print("----------------------------------------")
+    print("---------- PREVENTION -----------")
     for i in mistakePreventDic:
         print((i, mistakePreventDic[i]))
+    # print("----------------------------------------")
+    # print("----------COLOR COUNT -----------")
+    # for i in colorCount:
+    #     print((i, colorCount[i]))
+    print("---------- TAKE POS -----------")
+    for i in ids_clicks:
+        print((i, ids_clicks[i]))
     displayScore(display_explanation, correctSort, wrongSort, missed, robot_correct, robot_incorrect)
     [supervisor.step(64) for x in range(10)]
     supervisor.simulationSetMode(0)
@@ -218,6 +228,7 @@ def countCansOnConveyor(missed, cansOnConveyor):
     toRemove = []  # We need to delete the cans from the simulation in the end
     for n in range(root_children_n):
         if "CAN" in root_children.getMFNode(n).getDef():
+            color = root_children.getMFNode(n).getDef().split("_")[0].lower()
             can = root_children.getMFNode(n)
             can_id = can.getId()
             x, y, z = can.getField("translation").getSFVec3f()
@@ -225,6 +236,7 @@ def countCansOnConveyor(missed, cansOnConveyor):
             if can_id in list(cansOnConveyor.keys()):
                 if x < -0.75:# and y >= 0.8:
                     missed += 1
+                    recordLib[color][4].append(candidates[can_id])
                     toRemove.append(can)
                     del cansOnConveyor[can_id]
                 elif (z > 0.6 or z < 0.4) and y <= 0.88:
@@ -242,7 +254,7 @@ def countCansOnConveyor(missed, cansOnConveyor):
                     else:
                         options = ["yellow", "red", "green"]
                         options.remove(trueColor)
-                        if can_id not in mistakeCanDic.keys():
+                        if can_id not in mistakeCanDic.keys() and "ROTATED" not in can.getDef():
                             mistakeDic["color"] += 1
                             mistakeCanDic[can_id] = "color"
                         cansOnConveyor[can_id].append(random.choice(options))
@@ -448,6 +460,8 @@ robot_connector.enablePresence(timestep)
 can_tcp_dist = 999
 
 
+ids_clicks = {}
+
 while supervisor.step(timestep) != -1:
     if not bool(crate_pos_img["GREEN_ROBOT_CRATE"]): tryGetCratePos()
     cansOnConveyor, missed = countCansOnConveyor(missed, cansOnConveyor)
@@ -461,7 +475,9 @@ while supervisor.step(timestep) != -1:
     if "CAN" in selectionName:
         canSelection = selection
         canColor = selectionColor
-        
+        if canSelection.getId() not in ids_clicks.keys():
+            ids_clicks[canSelection.getId()] = canSelection.getField("translation").getSFVec3f()
+
     elif ("CRATE" in selectionName) and canSelection:
         if canSelection.getId() == graspedCan and robot_connector.isLocked():
             canSelection = None
@@ -484,7 +500,7 @@ while supervisor.step(timestep) != -1:
         canX, _, _ = supervisor.getFromId(canID).getField("translation").getSFVec3f()
         if canX < -1.5:
             missed += 1
-            recordLib[canID][4].append(candidates[canSelection.getId()])
+            #recordLib[canID][4].append(candidates[canSelection.getId()])
 
     prevSelection = selection
     spawn_timer += 1
