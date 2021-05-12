@@ -8,9 +8,10 @@ import os
 import math
 
 # easy or hard
-gameMode = "test"    
+participantId = "11"
+gameMode = 1    
 condition = "visual"
-
+filepath = "data/" + participantId + "-" + condition + "-" + str(gameMode) + ".txt"
 # user correct, user incorrect, robot correct, robot incorrect, miss
 experiment_conditions = {"control" : [False, False, False],
                          "all"     : [True, True, True],
@@ -137,6 +138,10 @@ def generateCans():
 
 
 def endGame():
+    with open(filepath, 'a') as f:
+        print(recordLib, file=f)
+        print(mistakePreventDic, file=f)
+        print(ids_clicks, file=f)
     [supervisor.step(64) for x in range(10)]
     for i in recordLib:
         print (i, recordLib[i])
