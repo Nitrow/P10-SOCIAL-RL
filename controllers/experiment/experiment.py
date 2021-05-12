@@ -475,13 +475,14 @@ while supervisor.step(timestep) != -1:
     if "CAN" in selectionName:
         canSelection = selection
         canColor = selectionColor
-        if canSelection.getId() not in ids_clicks.keys():
-            ids_clicks[canSelection.getId()] = canSelection.getField("translation").getSFVec3f()
 
     elif ("CRATE" in selectionName) and canSelection:
         if canSelection.getId() == graspedCan and robot_connector.isLocked():
             canSelection = None
             continue
+        if canSelection:
+            if canSelection.getId() not in ids_clicks.keys():
+                ids_clicks[canSelection.getId()] = canSelection.getField("translation").getSFVec3f()[0]
         new_position = selection.getField("translation").getSFVec3f()
         new_position[1] = can_height
         canSelection.getField("translation").setSFVec3f(new_position)
