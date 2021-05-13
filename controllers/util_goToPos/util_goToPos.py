@@ -74,15 +74,17 @@ down_pose = [16.62, -119.16, -92.69, -58.74, 89.52, 11.01]
 moveFingers(fingers, "open")
 robot_connector = supervisor.getDevice("connector")
 robot_connector.enablePresence(timestep)
-
+#motors[-1].setPosition(float('inf'))
 while supervisor.step(timestep) != -1:
-	print(round(0.51), round(0.4), round(0.6))
-	print(robot_connector.getPresence())
+	#print(round(0.51), round(0.4), round(0.6))
+	#print(robot_connector.getPresence())
 	can.resetPhysics()
 	robot_connector.lock()
-	print(robot_connector.isLocked())
+	#print(robot_connector.isLocked())
+	#motors[-1].setVelocity(3.14)
 	if count == 100:
 		#rotateCan()
+		
 		[motors[i].setPosition(math.radians(down_pose[i])) for i in range(len(down_pose))]
 	if count == 200:
 		count = 0
