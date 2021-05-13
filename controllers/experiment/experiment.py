@@ -8,7 +8,7 @@ import os
 import math
 
 # easy or hard
-participantId = "13"
+participantId = "16"
 gameMode = 2    
 condition = "visual"
 filepath = "data/" + participantId + "-" + condition + "-" + str(gameMode) + ".txt"
@@ -241,7 +241,7 @@ def countCansOnConveyor(missed, cansOnConveyor):
             if can_id in list(cansOnConveyor.keys()):
                 if x < -0.75:# and y >= 0.8:
                     missed += 1
-                    recordLib[color][4].append(candidates[can_id])
+                    recordLib[color][4].append([candidates[can_id], can_id])
                     toRemove.append(can)
                     del cansOnConveyor[can_id]
                 elif (z > 0.6 or z < 0.4) and y <= 0.88:
@@ -493,11 +493,11 @@ while supervisor.step(timestep) != -1:
         canSelection.getField("translation").setSFVec3f(new_position)
         if selectionColor == canColor:
             correctSort += 1
-            recordLib[selectionColor.lower()][0].append(candidates[canSelection.getId()])
+            recordLib[selectionColor.lower()][0].append([candidates[canSelection.getId()],canSelection.getId()])
             if canSelection.getId() in mistakeCanDic.keys(): mistakePreventDic[mistakeCanDic[canSelection.getId()]] += 1
         else:
             wrongSort += 1
-            recordLib[selectionColor.lower()][1].append(candidates[canSelection.getId()])
+            recordLib[selectionColor.lower()][1].append([candidates[canSelection.getId()], canSelection.getId()])
         del cansOnConveyor[canSelection.getId()]
         canSelection = None
 
@@ -589,10 +589,10 @@ while supervisor.step(timestep) != -1:
         target = setPoseRobot(custom_dic, candidates[index][0][1])
         if candidates[index][0][1] == candidates[index][0][0]:
             robot_correct += robot_reward
-            recordLib[candidates[index][0][0]][2].append(candidates[index])
+            recordLib[candidates[index][0][0]][2].append([candidates[index], index])
         if candidates[index][0][1] != candidates[index][0][0]:
             robot_incorrect += robot_reward
-            recordLib[candidates[index][0][0]][3].append(candidates[index])
+            recordLib[candidates[index][0][0]][3].append([candidates[index], index])
 
     if  stages["Release"] and positionCheck(target, sensors, 0.01) and not robot_connector.isLocked() :
         target = setPoseRobot(custom_dic, "ready")
