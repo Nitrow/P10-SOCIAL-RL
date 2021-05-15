@@ -8,7 +8,7 @@ import os
 import math
 
 # easy or hard
-participantId = "29"
+participantId = "31"
 gameMode = 2
 condition = "all"
 filepath = "data/" + participantId + "-" + condition + "-" + str(gameMode) + ".txt"
