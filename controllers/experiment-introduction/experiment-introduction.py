@@ -12,7 +12,7 @@ import math
 # POS: 1.6931910127331369 1.781756528011428 5.350749519514143
 # ROT: -0.9975109062294765 -0.05050270631532978 0.049208420093273746 0.06363818669844469
 #condition = ["control", "all", "visual", "written"]
-condition = "all"   
+condition = "control"   
 
 
 supervisor = Supervisor()
