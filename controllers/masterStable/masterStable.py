@@ -21,9 +21,9 @@ env = P10_DRL_Mark_SingleJointEnv()
 n_actions = env.action_space.shape[-1]
 action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.001 * np.ones(n_actions))
 
-#model =  PPO("MlpPolicy", env, learning_rate=0.0003, verbose=2)  # , tensorboard_log="/home/asger/P10-XRL/controllers/masterStable/tensorboard")
-model = TQC("MlpPolicy", env, top_quantiles_to_drop_per_net=2, verbose=1, tensorboard_log="/home/asger/P10-XRL/controllers/masterStable/tensorboard")
-model.learn(total_timesteps=10000000, log_interval=1)
+model =  PPO("MlpPolicy", env, verbose=1, policy_kwargs= policy_kwargs,  batch_size=512, tensorboard_log="/home/asger/P10-XRL/controllers/masterStable/tensorboard")
+#model = TQC("MlpPolicy", env, top_quantiles_to_drop_per_net=2, verbose=1, tensorboard_log="/home/asger/P10-XRL/controllers/masterStable/tensorboard")
+model.learn(total_timesteps=100000000, log_interval=1)
 model.save("ppo_p10")
 env = model.get_env()
 
