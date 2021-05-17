@@ -8,7 +8,9 @@ import random
 
 # create the Robot instance.
 supervisor = Supervisor()
-
+robot = supervisor.getFromDef("UR3")
+f1 = supervisor.getFromDef("FINGER1")
+f2 = supervisor.getFromDef("FINGER2")
 random.seed(1)
 
 rotationFile = open('rotations.txt', 'r')
@@ -69,22 +71,27 @@ for i in range(len(joint_names)):
     #motors[i].setPosition(float('inf'))
 
 up_pose = [16.63, -111.19, -63.15, -96.24, 89.47, 10.81]
-down_pose = [16.62, -119.16, -92.69, -58.74, 89.52, 11.01]
+#down_pose = [16.62, -119.16, -92.69, -58.74, 89.52, 11.01]
+down_pose = [16.60, -121.69, -94.63, -54.27, 89.52, 11.01]
 
-moveFingers(fingers, "open")
+#moveFingers(fingers, "open")
 robot_connector = supervisor.getDevice("connector")
 robot_connector.enablePresence(timestep)
 #motors[-1].setPosition(float('inf'))
 while supervisor.step(timestep) != -1:
-	#print(round(0.51), round(0.4), round(0.6))
+	print(f1.getNumberOfContactPoints(), f2.getNumberOfContactPoints())
 	#print(robot_connector.getPresence())
 	can.resetPhysics()
-	robot_connector.lock()
+	if robot_connector.getPresence():
+		moveFingers(fingers, "close")
+		#robot_connector.lock()
+	else:
+		moveFingers(fingers, "open")
+		#robot_connector.unlock()
 	#print(robot_connector.isLocked())
 	#motors[-1].setVelocity(3.14)
 	if count == 100:
 		#rotateCan()
-		
 		[motors[i].setPosition(math.radians(down_pose[i])) for i in range(len(down_pose))]
 	if count == 200:
 		count = 0

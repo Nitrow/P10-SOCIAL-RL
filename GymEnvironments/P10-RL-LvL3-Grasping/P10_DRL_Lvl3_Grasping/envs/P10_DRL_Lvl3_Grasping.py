@@ -16,21 +16,24 @@ import os
 
 from controller import Robot, Motor, Supervisor, Connector
 
-
 class P10_DRL_Lvl3_Grasping(gym.Env):
 
     def __init__(self):
 
         random.seed(1)
+        self.test = True
         self.id = "SAC - " + str(datetime.now())[:-7].replace(':','_') + 'P10_DRL_Lvl3_Grasping' 
         #self.id = '2021-04-15 09_44_43_SAC_P10_MarkEnv_SingleJoint_' 
-        self.path = "data/" + self.id + "/"
+        self.path = "data/" + self.id + "/" if not self.test else "test/" + self.id + "/" 
         os.makedirs(self.path, exist_ok=True)
         self.supervisor = Supervisor()
         self.TIME_STEP = int(self.supervisor.getBasicTimeStep())
         self.robot_node = self.supervisor.getFromDef("UR3")
         self.robot_connector = self.supervisor.getDevice("connector")
         self.robot_connector.enablePresence(self.TIME_STEP)
+        self.finger1 = self.supervisor.getFromDef("FINGER1")
+        self.finger2 = self.supervisor.getFromDef("FINGER2")
+
         self.isPresence = 0
         self.pastPresence = 0
         self.pastLocked = False
@@ -41,10 +44,11 @@ class P10_DRL_Lvl3_Grasping(gym.Env):
         self.goal_node = self.supervisor.getFromDef("GREEN_ROTATED_CAN")
         self.fingers = [self.supervisor.getDevice('right_finger'), self.supervisor.getDevice('left_finger')]
         self.sensor_fingers = [self.supervisor.getDevice('right_finger_sensor'), self.supervisor.getDevice('left_finger_sensor')]
-        
+        self.tcp = self.supervisor.getFromDef("TCP")
+        self.tcp_pos = self.supervisor.getFromDef("TCP").getField("translation")
+        self.tcp_can_dist = []
         self.sensor_fingers[0].enable(self.TIME_STEP)
         self.sensor_fingers[1].enable(self.TIME_STEP)
-        
         self.timeout = 300
         
         self.rotations = self._util_readRotationFile('rotations.txt')#[0.577, 0.577, 0.577, 2.094]
@@ -68,7 +72,7 @@ class P10_DRL_Lvl3_Grasping(gym.Env):
 
         self.epOutcome = ""
 
-        self.reward = 1
+        self.reward = 0
         self.rewardstr = "Get presence: 1, close fingers: 1, lift up: 1"
         self.figure_file = self.path + "{} - Rewards {} - Timeout at {}".format(self.id, self.rewardstr, str(self.timeout))
         
@@ -93,6 +97,7 @@ class P10_DRL_Lvl3_Grasping(gym.Env):
         print('\n ------------------------------------ RESET ------------------------------------ \n')
         self.supervisor.simulationReset()
         self.counter = 0
+        self.reward = 0
         self._getMotors()
         self._getSensors() 
         self._setTarget()
@@ -121,20 +126,20 @@ class P10_DRL_Lvl3_Grasping(gym.Env):
         # Get new state
         state = self.getState()
         self.counter = self.counter + 1
-        reward = self._getReward()    
+        self._getReward()    
         if self.counter >= self.timeout:
             self.epOutcome = "Timeout"
             print("Timeout")
             self.done = True
-        if reward == 4:
+        if self.reward >= 4:
             self.epOutcome = "Success"
             print("Success")
             self.done = True
-        self.total_rewards += reward
+        self.total_rewards += self.reward
         if self.done:
             self.saveEpisode(str(round(self.total_rewards)) + ";")
             self.plot_learning_curve()
-        return [state, float(reward), self.done, {}]
+        return [state, float(self.reward), self.done, {}]
 
 
     def _getSensors(self):
@@ -155,23 +160,28 @@ class P10_DRL_Lvl3_Grasping(gym.Env):
         Third reward: Learn to lift it up
             +1 if lifts up while locked and presence
         """
-        reward = 0
+        #reward = 0
+        cp_f1 = self.finger1.getNumberOfContactPoints()  # contact points for finger 1
+        cp_f2 = self.finger2.getNumberOfContactPoints()  # contact points for finger 2
         self.isPresence = min(self.robot_connector.getPresence(),1)
         self.isLocked = self.robot_connector.isLocked()
-
+        print(cp_f1, cp_f2)
+        #print("--------- R E W A R D S:\t {} ---------".format(self.reward))
         if self.isPresence != self.pastPresence:
-            reward = 1 if (self.isPresence and not self.pastPresence) else -1
-        if reward and self.isLocked != self.pastLocked:
-            reward = reward + 1 if (self.isLocked and not self.pastLocked) else reward - 1
-        if reward == 2 and self.movement_state != self.pastMoveState:
-            reward = reward + 1 if self.movement_state == 1 else reward - 1
-        if reward == 3:
-            reward = reward + 1 if self._util_positionCheck(self.up_pose) else reward
+            self.reward = self.reward + 1 if self.isPresence else self.reward-1
+            #print("\tPresence:{}\tself.reward {}".format(self.isPresence, self.reward))
+        if self.reward and self.isLocked != self.pastLocked:
+            self.reward = self.reward + 1 if self.isLocked else self.reward - 1
+            #print("\tLocked:{}\tself.reward {}".format(self.isLocked, self.reward))
+        if self.reward == 2 and self.movement_state != self.pastMoveState:
+            self.reward = self.reward + 1 if self.movement_state == 1 else self.reward - 1
+            #print("\tMovingUp:{}\tself.reward {}".format(self.movement_state, self.reward))
+        if self.reward == 3:
+            self.reward = self.reward + 1 if self._util_positionCheck(self.up_pose) else self.reward
+            #print("\tself.reward {}".format(self.reward))
         self.pastPresence = self.isPresence
         self.pastLocked = self.isLocked
         self.pastMoveState = self.movement_state
-
-        return reward
 
 
     def _getMotors(self):
@@ -215,7 +225,9 @@ class P10_DRL_Lvl3_Grasping(gym.Env):
         state = []
         state.append(self.sensors[-1].getValue())  # Get joint angle
         state += self.goal_rot.getSFRotation()
-        state += self.goal_pos.getSFVec3f()
+        self.tcp_can_dist  = list(np.array(self.goal_pos.getSFVec3f()) - np.array(self.tcp.getPosition()))
+        print("Can relative position: {}\t sum: {}".format(self.tcp_can_dist, abs(sum(self.tcp_can_dist))))
+        state += self.tcp_can_dist
         state.append(self.finger_state)
         state.append(self.movement_state)
         # print("State\t",state)
@@ -227,12 +239,12 @@ class P10_DRL_Lvl3_Grasping(gym.Env):
             self.finger_state = 0
             self.fingers[0].setPosition(0.04)
             self.fingers[1].setPosition(0.04)
-            self.robot_connector.lock()
+            #self.robot_connector.lock()
         elif mode == 1:
             self.finger_state = 1
             self.fingers[0].setPosition(0.015)
             self.fingers[1].setPosition(0.015)
-            self.robot_connector.unlock()
+            #self.robot_connector.unlock()
 
 
     def _action_moveTCP(self, mode):
