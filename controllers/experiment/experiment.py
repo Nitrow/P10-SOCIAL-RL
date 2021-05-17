@@ -9,7 +9,7 @@ import math
 
 # easy or hard
 participantId = "32"
-gameMode = 1
+gameMode = 2
 condition = "control"
 filepath = "data/" + participantId + "-" + condition + "-" + str(gameMode) + ".txt"
 # user correct, user incorrect, robot correct, robot incorrect, miss
