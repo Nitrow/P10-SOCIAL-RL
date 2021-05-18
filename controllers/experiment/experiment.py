@@ -8,9 +8,9 @@ import os
 import math
 
 # easy or hard
-participantId = "41"
+participantId = "42"
 gameMode = 2
-condition = "all"
+condition = "control"
 filepath = "data/" + participantId + "-" + condition + "-" + str(gameMode) + ".txt"
 # user correct, user incorrect, robot correct, robot incorrect, miss
 experiment_conditions = {"control" : [False, False, False],
