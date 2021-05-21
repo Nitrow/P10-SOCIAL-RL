@@ -7,7 +7,7 @@ import gym
 from gym import spaces
 import numpy as np
 import random
-import math
+import math as m
 import matplotlib.pyplot as plt
 from datetime import datetime
 import torch
@@ -49,6 +49,10 @@ class P10_DRL_Lvl3_Grasping(gym.Env):
         self.tcp_can_dist = []
         self.sensor_fingers[0].enable(self.TIME_STEP)
         self.sensor_fingers[1].enable(self.TIME_STEP)
+        self.touch_sensor_f1 = self.supervisor.getDevice("touch sensor finger1")
+        self.touch_sensor_f1.enable(self.TIME_STEP)
+        self.touch_sensor_f2 = self.supervisor.getDevice("touch sensor finger2")
+        self.touch_sensor_f2.enable(self.TIME_STEP)
         self.timeout = 300
         
         self.rotations = self._util_readRotationFile('rotations.txt')#[0.577, 0.577, 0.577, 2.094]
@@ -86,7 +90,7 @@ class P10_DRL_Lvl3_Grasping(gym.Env):
         self.actionScale = 3
         # Action: open/close finger, rotate joint, go up/down
         self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float32)
-        self.observation_space = spaces.Box(low=-10, high=10, shape=(10,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-10, high=10, shape=(7,), dtype=np.float32)
 
         self.documentation = "Action space: move_down, move_up, close_fingers, rotate+, rotate-, open_fingers"
         self.documentation += "{} - Rewards {} - Timeout at {}\n".format(self.id, self.rewardstr, str(self.timeout))
@@ -101,6 +105,8 @@ class P10_DRL_Lvl3_Grasping(gym.Env):
         self._getMotors()
         self._getSensors() 
         self._setTarget()
+        self.finger1.resetPhysics()
+        self.finger2.resetPhysics()
         self.total_rewards = 0    
         self.done = False
         state = self.getState()
@@ -112,15 +118,15 @@ class P10_DRL_Lvl3_Grasping(gym.Env):
         # print("\t Finger closing: ", action[0])
         # print("\t Moving up or down: ", action[1])
         # print("\t Rotating the fingers: ", action[2])
-        jointState = self.sensors[-1].getValue()
         #print(self.counter)
+        print("Finger1: ",self.touch_sensor_f1.getValue(), "Finger2: ",self.touch_sensor_f2.getValue())
         self.goal_node.resetPhysics()
         self._getMotors()
         self._getSensors()
         # Set actions
         self._action_moveFingers(round(action[0]))  # Open or close fingers
         self._action_moveTCP(round(action[1]))  # Go up or down
-        self.motors[-1].setPosition(max(min(jointState + action[2], 6.28),-6.28))  # Set the rotation clamped
+        self.motors[-1].setPosition(max(min(self.sensors[-1].getValue() + action[2], 6.28),-6.28))  # Set the rotation clamped
         # Execute actions
         self.supervisor.step(self.TIME_STEP)   
         # Get new state
@@ -224,7 +230,7 @@ class P10_DRL_Lvl3_Grasping(gym.Env):
         """
         state = []
         state.append(self.sensors[-1].getValue())  # Get joint angle
-        state += self.goal_rot.getSFRotation()
+        state.append(self._util_axisangle2euler(self.goal_rot.getSFRotation()))  # Get can yaw 
         self.tcp_can_dist  = list(np.array(self.goal_pos.getSFVec3f()) - np.array(self.tcp.getPosition()))
         print("Can relative position: {}\t sum: {}".format(self.tcp_can_dist, abs(sum(self.tcp_can_dist))))
         state += self.tcp_can_dist
@@ -254,16 +260,16 @@ class P10_DRL_Lvl3_Grasping(gym.Env):
         # print(mode)
         if mode == 0:
             self.movement_state = 0
-            [self.motors[i].setPosition(math.radians(self.down_pose[i])) for i in range(len(self.down_pose))]
+            [self.motors[i].setPosition(m.radians(self.down_pose[i])) for i in range(len(self.down_pose))]
         elif mode == 1:
             self.movement_state = 1
-            [self.motors[i].setPosition(math.radians(self.up_pose[i])) for i in range(len(self.up_pose))]
+            [self.motors[i].setPosition(m.radians(self.up_pose[i])) for i in range(len(self.up_pose))]
 
 
     def _util_positionCheck(self, pos, limit = 0.1):
         if len(pos):
-            #print("Target position at: {}, position is at {}".format(pos, [math.degrees(sens[i].getValue()) for i in range(len(pos))]))
-            if all([abs(self.sensors[i].getValue() - math.radians(pos[i])) < limit for i in range(len(pos))]):
+            #print("Target position at: {}, position is at {}".format(pos, [m.degrees(sens[i].getValue()) for i in range(len(pos))]))
+            if all([abs(self.sensors[i].getValue() - m.radians(pos[i])) < limit for i in range(len(pos))]):
                 movementLock = False
                 return True  
         return False
@@ -280,6 +286,23 @@ class P10_DRL_Lvl3_Grasping(gym.Env):
             tempList = [float(num) for num in numbers]
             rotations.append(tempList) 
         return rotations
+
+    def _util_axisangle2euler(self, rotation):
+        # YZX
+        x,y,z,angle = rotation
+        s = m.sin(angle)
+        c = m.cos(angle)
+        t = 1-c
+        if ((x*y*t + z*s) > 0.998): # north pole singularity
+            yaw = round(m.degrees(2*m.atan2(x*m.sin(angle/2), m.cos(angle/2))))
+
+        elif ((x*y*t + z*s) < -0.998):
+            yaw = round(m.degrees(-2*m.atan2(x*m.sin(angle/2), m.cos(angle/2))))
+
+        else:
+            yaw = round(m.degrees(m.atan2(y*s - x*z, 1 - (y*y + z*z) * t)))
+        yaw = yaw + 180 if yaw <= 0 else yaw
+        return yaw
 
 
     def plot_learning_curve(self):

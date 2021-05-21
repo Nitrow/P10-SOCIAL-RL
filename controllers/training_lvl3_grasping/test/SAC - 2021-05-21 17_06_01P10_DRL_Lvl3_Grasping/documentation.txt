@@ -1,0 +1,2 @@
+Action space: move_down, move_up, close_fingers, rotate+, rotate-, open_fingersSAC - 2021-05-21 17_06_01P10_DRL_Lvl3_Grasping - Rewards Get presence: 1, close fingers: 1, lift up: 1 - Timeout at 300
+0;0;

@@ -3,8 +3,36 @@
 # You may need to import some classes of the controller module. Ex:
 #  from controller import Robot, Motor, DistanceSensor
 from controller import Robot, Supervisor, Node
-import math
+import math as m
 import random
+from scipy.spatial.transform import Rotation as rot
+
+
+def axisangle2euler(rotation):
+	# YZX
+	x,y,z,angle = rotation
+	s = m.sin(angle)
+	c = m.cos(angle)
+	t = 1-c
+	if ((x*y*t + z*s) > 0.998): # north pole singularity
+		yaw = round(m.degrees(2*m.atan2(x*m.sin(angle/2), m.cos(angle/2))))
+		#pitch = m.pi/2
+		#roll = 0
+		#return [roll, pitch, yaw]
+
+	elif ((x*y*t + z*s) < -0.998):
+		yaw = round(m.degrees(-2*m.atan2(x*m.sin(angle/2), m.cos(angle/2))))
+		#pitch = -m.pi/2
+		#roll = 0
+		#return [roll, pitch, yaw]
+	else:
+		yaw = round(m.degrees(m.atan2(y*s - x*z, 1 - (y*y + z*z) * t)))
+	yaw = yaw + 180 if yaw <= 0 else yaw
+	return yaw
+	#pitch = m.asin(x * y * t + z * s)
+	#roll = m.atan2(x * s - y * z * t, 1 - (x*x + z*z) * t)
+	#return [roll, pitch, yaw]
+
 
 # create the Robot instance.
 supervisor = Supervisor()
@@ -60,6 +88,8 @@ def rotateCan():
 	x = random.uniform(-0.05, 0.03)
 	translation = [x, 0.84, 0.4]
 	can.getField("rotation").setSFRotation(rotation)
+	print(rotation)
+	print(axisangle2euler(rotation))
 	can.getField("translation").setSFVec3f(translation)
 	can.resetPhysics()
 
@@ -79,25 +109,34 @@ robot_connector = supervisor.getDevice("connector")
 robot_connector.enablePresence(timestep)
 #motors[-1].setPosition(float('inf'))
 while supervisor.step(timestep) != -1:
-	print(f1.getNumberOfContactPoints(), f2.getNumberOfContactPoints())
+	#print(f1.getNumberOfContactPoints(), f2.getNumberOfContactPoints())
 	#print(robot_connector.getPresence())
+	axisAngle = can.getField("rotation").getSFRotation()
+	axisAngle = [round(a,3) for a in axisAngle]
+	eulerAngle = axisangle2euler(axisAngle)
+	#print(axisAngle)
+	print(eulerAngle)
+	#print(axisangle2euler())
 	can.resetPhysics()
-	if robot_connector.getPresence():
-		moveFingers(fingers, "close")
-		#robot_connector.lock()
-	else:
-		moveFingers(fingers, "open")
+	# if robot_connector.getPresence():
+	# 	moveFingers(fingers, "close")
+	# 	#robot_connector.lock()
+	# else:
+	# 	moveFingers(fingers, "open")
 		#robot_connector.unlock()
 	#print(robot_connector.isLocked())
 	#motors[-1].setVelocity(3.14)
 	if count == 100:
 		#rotateCan()
-		[motors[i].setPosition(math.radians(down_pose[i])) for i in range(len(down_pose))]
+		#[motors[i].setPosition(m.radians(down_pose[i])) for i in range(len(down_pose))]
+		moveFingers(fingers, "open")
 	if count == 200:
 		count = 0
 		#rotateCan()
-		[motors[i].setPosition(math.radians(up_pose[i])) for i in range(len(up_pose))]
+		moveFingers(fingers, "close")
+		#[motors[i].setPosition(m.radians(up_pose[i])) for i in range(len(up_pose))]
+		
 	count += 1
-	#[motors[i].setPosition(math.radians(up_pose[i])) for i in range(len(up_pose))]
+	#[motors[i].setPosition(m.radians(up_pose[i])) for i in range(len(up_pose))]
 
 # Enter here exit cleanup code.
