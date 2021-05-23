@@ -71,6 +71,8 @@ sensor_fingers = [supervisor.getDevice('right_finger_sensor'), supervisor.getDev
 
 
 can = supervisor.getFromDef("GREEN_ROTATED_CAN")
+can_pos = can.getField("translation")
+tcp = supervisor.getFromDef("TCP")
 
 
 def moveFingers(fingers, mode="open"):
@@ -90,7 +92,7 @@ def rotateCan():
 	can.getField("rotation").setSFRotation(rotation)
 	print(rotation)
 	print(axisangle2euler(rotation))
-	can.getField("translation").setSFVec3f(translation)
+	can_pos.setSFVec3f(translation)
 	can.resetPhysics()
 
 for i in range(len(joint_names)):  
@@ -115,7 +117,8 @@ while supervisor.step(timestep) != -1:
 	axisAngle = [round(a,3) for a in axisAngle]
 	eulerAngle = axisangle2euler(axisAngle)
 	#print(axisAngle)
-	print(eulerAngle)
+	#print(eulerAngle)
+	print("CAN: ", round(can_pos.getSFVec3f()[1],6)*100, "\tTCP: ", round(tcp.getPosition()[1], 6)*100)
 	#print(axisangle2euler())
 	can.resetPhysics()
 	# if robot_connector.getPresence():
@@ -128,13 +131,13 @@ while supervisor.step(timestep) != -1:
 	#motors[-1].setVelocity(3.14)
 	if count == 100:
 		#rotateCan()
-		#[motors[i].setPosition(m.radians(down_pose[i])) for i in range(len(down_pose))]
+		[motors[i].setPosition(m.radians(down_pose[i])) for i in range(len(down_pose))]
 		moveFingers(fingers, "open")
 	if count == 200:
 		count = 0
 		#rotateCan()
 		moveFingers(fingers, "close")
-		#[motors[i].setPosition(m.radians(up_pose[i])) for i in range(len(up_pose))]
+		[motors[i].setPosition(m.radians(up_pose[i])) for i in range(len(up_pose))]
 		
 	count += 1
 	#[motors[i].setPosition(m.radians(up_pose[i])) for i in range(len(up_pose))]

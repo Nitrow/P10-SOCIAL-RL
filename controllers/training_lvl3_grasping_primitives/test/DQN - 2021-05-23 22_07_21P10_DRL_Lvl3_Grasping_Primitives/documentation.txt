@@ -1,0 +1,1 @@
+Action space: move_down, move_up, close_fingers, rotate+, rotate-, open_fingersDQN - 2021-05-23 22_07_21P10_DRL_Lvl3_Grasping_Primitives - Rewards Get presence: 1, close fingers: 1, lift up: 1 - Timeout at 300
