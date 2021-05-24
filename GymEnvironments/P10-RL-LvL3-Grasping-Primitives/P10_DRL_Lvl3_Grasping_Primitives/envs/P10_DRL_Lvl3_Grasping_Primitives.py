@@ -12,17 +12,19 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import torch
 
-import os
+import os, sys
 
 from controller import Robot, Motor, Supervisor, Connector
 
 class P10_DRL_Lvl3_Grasping_Primitives(gym.Env):
 
-    def __init__(self):
+    def __init__(self, itername):
 
         random.seed(1)
-        self.test = True
-        self.id = "DQN - " + str(datetime.now())[:-7].replace(':','_') + 'P10_DRL_Lvl3_Grasping_Primitives'
+        self.test = False
+        #self.own_path = "/home/harumanager/P10-XRL/GymEnvironments/P10-RL-LvL3-Grasping-Primitives/P10_DRL_Lvl3_Grasping_Primitives/envs/P10_DRL_Lvl3_Grasping_Primitives.py"
+        self.own_path = os.getcwd().split("/P10-XRL/")[0] + "/P10-XRL/GymEnvironments/P10-RL-LvL3-Grasping-Primitives/P10_DRL_Lvl3_Grasping_Primitives/envs/P10_DRL_Lvl3_Grasping_Primitives.py"
+        self.id = "DQN - " + str(datetime.now())[:-7].replace(':','_') + 'P10_DRL_Lvl3_Grasping_Primitives_' + itername
         #self.id = '2021-04-15 09_44_43_SAC_P10_MarkEnv_SingleJoint_' 
         self.path = "data/" + self.id + "/" if not self.test else "test/" + self.id + "/" 
         os.makedirs(self.path, exist_ok=True)
@@ -55,7 +57,7 @@ class P10_DRL_Lvl3_Grasping_Primitives(gym.Env):
         # self.touch_sensor_f1.enable(self.TIME_STEP)
         # self.touch_sensor_f2 = self.supervisor.getDevice("touch sensor finger2")
         # self.touch_sensor_f2.enable(self.TIME_STEP)
-        self.timeout = 300
+        self.timeout = 100
         
         self.rotations = self._util_readRotationFile('rotations.txt')#[0.577, 0.577, 0.577, 2.094]
 
@@ -74,18 +76,12 @@ class P10_DRL_Lvl3_Grasping_Primitives(gym.Env):
         self.total_rewards = 0
         # Different reward components:
         self.reward = 0
-        self.presenceReward = 0
-        self.gripperReward = 0
-        self.liftingReward = 0
-        self.finishReward = 0
-        self.candistReward = 0
-        self.knowckawayReward = -10
+        self.partialReward = 0
 
         self.movement_state = 1  # 1 for upper state, 0 for lower state
         self.finger_state = 1  # 0 for open fingers, 1 for closed fingers
         self.pastFingerState = self.finger_state
 
-        self.epOutcome = ""
         self.rewardstr = "Get presence: 1, close fingers: 1, lift up: 1"
         self.figure_file = self.path + "{} - Rewards {} - Timeout at {}".format(self.id, self.rewardstr, str(self.timeout))
         
@@ -100,8 +96,10 @@ class P10_DRL_Lvl3_Grasping_Primitives(gym.Env):
 
         self.actionScale = 3
         # Action: open/close finger, rotate joint, go up/down
-        self.action_space = spaces.Box(low=-1, high=1, shape=(8,), dtype=np.float32)
-        self.observation_space = spaces.Box(low=-10, high=10, shape=(6,), dtype=np.float32)
+        self.action_shape = 8
+        self.state_shape = 4
+        self.action_space = spaces.Box(low=-1, high=1, shape=(self.action_shape,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-10, high=10, shape=(self.state_shape,), dtype=np.float32)
 
         self.documentation = "Action space: move_down, move_up, close_fingers, rotate+, rotate-, open_fingers"
         self.documentation += "{} - Rewards {} - Timeout at {}\n".format(self.id, self.rewardstr, str(self.timeout))
@@ -122,40 +120,44 @@ class P10_DRL_Lvl3_Grasping_Primitives(gym.Env):
         self.total_rewards = 0    
         self.done = False
         state = self.getState()
-        return np.asarray(state)
+        return state
 
 
     def step(self, action):
-        print("STEP: ", self.counter)
+        if self.test:
+            print("--------------------")
+            print("STEP: ", self.counter)
+        self.partialReward = 0#-0.25
         #self.goal_node.resetPhysics()
         self._getMotors()
         self._getSensors()
+        self.finger1.resetPhysics()
+        self.finger2.resetPhysics()
         # Set actions
         self.motors[-1].setPosition(float(self.actions[action]))
         while not (self.sensors[-1].getValue() - action) < 0.01: self.supervisor.step(self.TIME_STEP)
-        if not self.isPresence:
-            self._action_moveFingers(0)  # Open fingers
-            self._action_moveTCP(0)  # Go down
+        #if not self.isPresence:
+        self._action_moveFingers(0)  # Open fingers
+        for i in range(5): self.supervisor.step(self.TIME_STEP)
+        self._action_moveTCP(0)  # Go down
         self._action_moveFingers(1)  # close fingers
-        self._action_moveTCP(1)  # Go up 
-        # Execute actions
-        #self.supervisor.step(self.TIME_STEP)   
-        # Get new state
-        state = self.getState()
+        for i in range(5): self.supervisor.step(self.TIME_STEP)
+        self._action_moveTCP(1)  # Go up
+        for i in range(100):
+            if self.partialReward and np.linalg.norm(np.array(self.goal_pos.getSFVec3f())-np.array(self.tcp.getPosition()))*100 < 10:
+                self.partialReward = 0
+            self.supervisor.step(self.TIME_STEP)
+        #print(self.finger1.getNumberOfContactPoints(), self.finger2.getNumberOfContactPoints())
         self.counter = self.counter + 1
-        self._getReward()    
+        self.reward = 1 if np.linalg.norm(np.array(self.goal_pos.getSFVec3f())-np.array(self.tcp.getPosition()))*100 < 10 else self.partialReward
+        if self.test: print("REWARD: ", self.reward)
+        if self.reward == 1:
+            if self.test: print("Success")
         if self.counter >= self.timeout:
-            self.epOutcome = "Timeout"
-            print("Timeout")
             self.done = True
-        if self.reward >= 4:
-            self.epOutcome = "Success"
-            print("Success")
-            self.done = True
-        if self.tcp_can_vertical_dist >= 17 or self.tcp_can_horizontal_dist >= 10:
-            print("Out of reach")
-            self.reward += self.knowckawayReward
-            self.done = True
+        self._setTarget()
+        state = self.getState()
+        if self.test: print("STATE: ", state)
         self.total_rewards += self.reward
         if self.done:
             self.saveEpisode(str(round(self.total_rewards)) + ";")
@@ -170,57 +172,6 @@ class P10_DRL_Lvl3_Grasping_Primitives(gym.Env):
         for i in range(len(self.touch_sensors)):
             self.touch_sensors[i] = self.supervisor.getDevice("touch_sensor"+str(i+1))
             self.touch_sensors[i].enable(self.TIME_STEP)
-
-
-    def _getReward(self):
-        """
-        First reward: Get orientation right
-            +1 if connector senses a presence, -1 if it doesn't (one time reward)
-        Second reward: Learn to pick it up
-            +1 if locks and closes finger
-        Third reward: Learn to lift it up
-            +1 if lifts up while locked and presence
-        """
-        #reward = 0
-        self.isPresence = min(self.robot_connector.getPresence(),1)
-        #self.isLocked = self.robot_connector.isLocked()
-    
-        if self.isPresence:
-            self.presenceReward = 1
-            if self.finger_state:
-                self.gripperReward = 1
-                if self.movement_state:
-                    self.liftingReward = 1
-                    if self._util_positionCheck(self.up_pose, self.sensors):
-                        self.finishReward = 1
-                    else: self.finishReward = 0
-                else: self.liftingReward = 0
-            else: self.gripperReward = 0
-        else:
-            self.presenceReward = 0
-            self.gripperReward = 0
-            self.liftingReward = 0
-            self.finishReward = 0
-
-        self.reward = self.presenceReward + self.gripperReward + self.liftingReward + self.finishReward + self.candistReward
-        print("Rewards...")
-        print("\t...presence: {}\n\t....gripping: {}\n\t....lifting: {}\n\t...finishing: {}\n\t...distance: {}".format(
-           self.presenceReward, self.gripperReward, self.liftingReward, self.finishReward, self.candistReward))
-        print("\tTotal reward: {}".format(self.reward))
-        # if self.tcp_can_total_dist <= 4 and self.tcp_can_vertical_dist <= 1:
-        # if self.reward and self.finger_state and self.tcp_can_total_dist <= 4:
-        #     self.reward = self.reward + 1 if self.isLocked else self.reward - 1
-        #     #print("\tLocked:{}\tself.reward {}".format(self.isLocked, self.reward))
-        # if self.reward == 2 and self.movement_state != self.pastMoveState:
-        #     self.reward = self.reward + 1 if self.movement_state == 1 else self.reward - 1
-        #     #print("\tMovingUp:{}\tself.reward {}".format(self.movement_state, self.reward))
-        # if self.reward >= 3 and :
-        #     self.reward = self.reward + 1 if self._util_positionCheck(self.up_pose) else self.reward
-        #     #print("\tself.reward {}".format(self.reward))
-        self.pastPresence = self.isPresence
-        self.pastLocked = self.isLocked
-        self.pastMoveState = self.movement_state
-        self.pastFingerState = self.finger_state
 
 
     def _getMotors(self):
@@ -239,10 +190,12 @@ class P10_DRL_Lvl3_Grasping_Primitives(gym.Env):
 
     def _setTarget(self):
         rotation = random.choice(self.rotations)
-        x = random.uniform(-0.05, 0.03)
-        translation = [x, 0.84, 0.4]
+        #x = random.uniform(-0.05, 0.03)
+        translation = [-0.01, 0.84, 0.4]
         self.goal_rot.setSFRotation(rotation)
         self.goal_pos.setSFVec3f(translation)
+        self.supervisor.step(self.TIME_STEP)
+        self.goal_node.resetPhysics()
 
     def render(self, mode='human'):
         pass
@@ -261,20 +214,23 @@ class P10_DRL_Lvl3_Grasping_Primitives(gym.Env):
         4. finger status (open, closed) - binary
         5. move status (up, down) - binary
         """
-        self.tcp_can_vertical_dist = abs(self.goal_pos.getSFVec3f()[1] - self.tcp.getPosition()[1])*100
-        self.tcp_can_horizontal_dist = abs(np.linalg.norm(np.array(self.goal_pos.getSFVec3f()[::2])-np.array(self.tcp.getPosition()[::2]))*100)
+        #self.tcp_can_vertical_dist = abs(self.goal_pos.getSFVec3f()[1] - self.tcp.getPosition()[1])*100
+        #self.tcp_can_horizontal_dist = abs(np.linalg.norm(np.array(self.goal_pos.getSFVec3f()[::2])-np.array(self.tcp.getPosition()[::2]))*100)
+        x_dist = abs(self.goal_pos.getSFVec3f()[0] - self.tcp.getPosition()[0])*100
+        y_dist = abs(self.goal_pos.getSFVec3f()[2] - self.tcp.getPosition()[2])*100
         # print(self.tcp_can_horizontal_dist)
         state = []
         state.append(self.sensors[-1].getValue())  # Get joint angle
         state.append(self._util_axisangle2euler(self.goal_rot.getSFRotation()))  # Get can yaw 
-        self.tcp_can_total_dist  = np.linalg.norm(np.array(self.goal_pos.getSFVec3f())-np.array(self.tcp.getPosition()))*100#abs(sum(list(np.array(self.goal_pos.getSFVec3f()) - np.array(self.tcp.getPosition()))))
-        self.candistReward = -self.tcp_can_total_dist/100
+        #self.tcp_can_total_dist  = np.linalg.norm(np.array(self.goal_pos.getSFVec3f())-np.array(self.tcp.getPosition()))*100#abs(sum(list(np.array(self.goal_pos.getSFVec3f()) - np.array(self.tcp.getPosition()))))
+        #self.candistReward = -self.tcp_can_total_dist/100
         #print("Can total dist {}\t vertical dist: {}".format(self.tcp_can_total_dist, self.tcp_can_vertical_dist))
-        state.append(self.tcp_can_total_dist)
-        state.append(self.tcp_can_vertical_dist)
-        state.append(self.finger_state)
-        state.append(self.movement_state)
+        #state.append(self.tcp_can_total_dist)
+        #state.append(self.tcp_can_vertical_dist)
+        #state.append(self.tcp_can_horizontal_dist)
         # print("State\t",state)
+        state.append(x_dist)
+        state.append(y_dist)
         state = [float(s) for s in state]
         return state
 
@@ -359,4 +315,15 @@ class P10_DRL_Lvl3_Grasping_Primitives(gym.Env):
         plt.plot(x, running_avg)
         plt.title('Running average of previous 100 scores')
         plt.savefig(self.figure_file)
+
+
+    #     if len(scores)<101:
+    #     return
+    # else:
+    #     running_avg = np.zeros(len(scores)-avg)
+    #     for i in range(len(running_avg)):
+    #         running_avg[i] = np.mean(scores[i-100:(i+1)])
+    #     plt.plot(x, running_avg)
+    #     plt.title('Running average of previous 100 scores')
+    #     plt.savefig(figure_file)
     

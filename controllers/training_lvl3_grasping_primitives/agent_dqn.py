@@ -3,10 +3,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
+import os
 
 class DeepQNetwork(nn.Module):
-    def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions):
+    def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions, chkpt_dir='tmp/dqn'):
         super(DeepQNetwork, self).__init__()
+        self.name = "DQN_Grasping"
         self.input_dims = input_dims
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
@@ -18,16 +20,25 @@ class DeepQNetwork(nn.Module):
         self.loss = nn.MSELoss()
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
+        self.checkpoint_dir = chkpt_dir
+        self.checkpoint_file = os.path.join(self.checkpoint_dir, self.name)
 
     def forward(self, state):
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         actions = self.fc3(x)
-
         return actions
 
+    def save_checkpoint(self):
+        T.save(self.state_dict(), self.checkpoint_file)
+
+    def load_checkpoint(self):
+        self.load_state_dict(T.load(self.checkpoint_file))
+
+
 class Agent():
-    def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions, max_mem_size =100000, eps_end=0.01, eps_dec=5e-4):
+    def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions, max_mem_size =100000, eps_end=0.01, eps_dec=5e-4, chkpt_dir='tmp/dqn', fc1_dims=256, fc2_dims=256):
+        self.chkpt_dir = chkpt_dir
         self.gamma = gamma
         self.epsilon = epsilon
         self.eps_min = eps_end
@@ -37,8 +48,10 @@ class Agent():
         self.mem_size = max_mem_size
         self.batch_size = batch_size
         self.mem_cntr = 0
+        self.fc1_dims = fc1_dims
+        self.fc2_dims = fc2_dims
         # Save the memory
-        self.Q_eval = DeepQNetwork(self.lr, n_actions=n_actions, input_dims=input_dims, fc1_dims=256, fc2_dims=256)
+        self.Q_eval = DeepQNetwork(self.lr, n_actions=n_actions, input_dims=input_dims, fc1_dims=self.fc1_dims, fc2_dims=self.fc2_dims, chkpt_dir=self.chkpt_dir)
         self.state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
         self.new_state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
         self.action_memory = np.zeros(self.mem_size, dtype=np.int32)
@@ -88,3 +101,11 @@ class Agent():
         loss.backward()
         self.Q_eval.optimizer.step()
         self.epsilon = max(self.epsilon - self.eps_dec, self.eps_min)
+
+    def save_models(self):
+        print('.... saving models ....')
+        self.Q_eval.save_checkpoint()
+
+    def load_models(self):
+        print('.... loading models ....')
+        self.Q_eval.load_checkpoint()
