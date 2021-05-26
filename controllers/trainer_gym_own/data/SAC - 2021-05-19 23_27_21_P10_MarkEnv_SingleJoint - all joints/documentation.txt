@@ -1,0 +1,2 @@
+Action space: all joints State space: tcp pos (xyz), target pos (xyz), joint positions .SAC - 2021-05-19 23_27_21_P10_MarkEnv_SingleJoint - all joints - Rewards success 1000, collision -300 distance 100 - Timeout at 600
+-259;-302;-286;-299;-295;-276;-314;-292;-280;-260;-282;-287;
