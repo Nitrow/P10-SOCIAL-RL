@@ -120,7 +120,7 @@ class P10_DRL_D3QNEnv(gym.Env):
         
         counter =+ 1
         
-        if self.counter == 4000:
+        if self.counter == 400:
             self.done = True
         
         

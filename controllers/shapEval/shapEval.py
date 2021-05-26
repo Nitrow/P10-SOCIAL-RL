@@ -20,12 +20,12 @@ if __name__ == '__main__':
                      'can 4 x', 'can 4 y', 'can 4 z', 'can 4 rot x', 'can 4 roty', 'can 4 rotz', 'can 4 angle', 'can 4 color x', 'can 4 color y', 'can 4 color z',      
                      'can 5 x', 'can 5 y', 'can 5 z', 'can 5 rot x', 'can 5 roty', 'can 5 rotz', 'can 5 angle', 'can 5 color x', 'can 5 color y', 'can 5 color z',      
                      'can 6 x', 'can 6 y', 'can 6 z', 'can 6 rot x', 'can 6 roty', 'can 6 rotz', 'can 6 angle', 'can 6 color x', 'can 6 color y', 'can 6 color z']
-
+    episodeMemory = []
     env = P10_DRL_D3QNEnv()
     best_score = -np.inf
     device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
-    load_checkpoint = True
-    n_games = 1
+    load_checkpoint = False
+    n_games = 5
     agent = DuelingDDQNAgent(gamma=0.99, epsilon=1.0, lr=0.0001,
                          input_dims=(env.observation_space.shape),
                          n_actions=env.action_space.n, mem_size=50000, eps_min=0.05,
@@ -33,43 +33,58 @@ if __name__ == '__main__':
                          chkpt_dir='models/', algo='DuelingDDQNAgent',
                          env_name='P10_DRL_D3QNEnv')
 
-    episodeMemory = []
+    if load_checkpoint:
+        agent.load_models()
+
+    fname = agent.algo + '_' + agent.env_name + '_lr' + str(agent.lr) +'_' \
+            + str(n_games) + 'games'
+    figure_file = 'plots/' + fname + '.png'
+
+    n_steps = 0
+    scores, eps_history, steps_array = [], [], []
+
     for i in range(n_games):
-        # Start a new game
-        observation = env.reset()
         done = False
+        observation = env.reset()
+
         score = 0
-        
         while not done:
-            # Take an action
-            #obsTensor = T.tensor([observation])
-            #obsTensor.to(device)
-            #agent.Q_eval.to(device)
-            #output = agent.Q_eval(obsTensor)
-            #print(output.shape)
-            #e = shap.DeepExplainer(agent.Q_eval, obsTensor)
-            #print(e)
             action = agent.choose_action(observation)
-            #print(actions[0].tolist())
-            #print(action, m.degrees(observation[0]))
-            # Do a step
             observation_, reward, done, info = env.step(action)
-            # Add to the memory
-            #agent.remember(observation, action, reward, observation_, done)
-            episodeMemory.append(observation_)
-            #print(memory[0], len(memory), type(memory[0]))
-            if not load_checkpoint: agent.learn()
-            # Bookkeeping scores
+            episodeMemory.append(observation_) 
             score += reward
+
+            if not load_checkpoint:
+                agent.store_transition(observation, action,
+                                     reward, observation_, int(done))
+                agent.learn()
+               
             observation = observation_
-           # steps += 1
-        #score_history.append(score)
-        #avg_score = np.mean(score_history[-100:])
-        #eps_history.append(agent.epsilon) 
-        
+            n_steps += 1
+        scores.append(score)
+        steps_array.append(n_steps)
+
+        avg_score = np.mean(scores[-100:])
+        print('episode: ', i,'score: ', score,
+             ' average score %.1f' % avg_score, 'best score %.2f' % best_score,
+            'epsilon %.2f' % agent.epsilon, 'steps', n_steps)
+
+        if avg_score > best_score:
+            if not load_checkpoint:
+                agent.save_models()
+            best_score = avg_score
+
+        eps_history.append(agent.epsilon)
+        if load_checkpoint and n_steps >= 18000:
+            break
+
+
+     
+     
+    
     obsTensor = T.tensor(episodeMemory) 
     testTensor = T.tensor([episodeMemory[-1]])
-    e = shap.DeepExplainer(agent.Q_eval, obsTensor)
+    e = shap.DeepExplainer(agent.q_next, obsTensor)
     shap_values = e.shap_values(testTensor)
     print(shap_values)
     
