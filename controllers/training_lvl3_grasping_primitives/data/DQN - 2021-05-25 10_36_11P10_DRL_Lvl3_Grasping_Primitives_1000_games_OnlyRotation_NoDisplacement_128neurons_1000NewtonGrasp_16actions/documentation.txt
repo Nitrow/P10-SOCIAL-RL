@@ -1,0 +1,1 @@
+Action space: move_down, move_up, close_fingers, rotate+, rotate-, open_fingersDQN - 2021-05-25 10_36_11P10_DRL_Lvl3_Grasping_Primitives_1000_games_OnlyRotation_NoDisplacement_128neurons_1000NewtonGrasp_16actions - Rewards Get presence: 1, close fingers: 1, lift up: 1 - Timeout at 100

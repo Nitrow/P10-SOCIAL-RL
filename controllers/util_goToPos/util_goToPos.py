@@ -16,22 +16,23 @@ def axisangle2euler(rotation):
 	t = 1-c
 	if ((x*y*t + z*s) > 0.998): # north pole singularity
 		yaw = round(m.degrees(2*m.atan2(x*m.sin(angle/2), m.cos(angle/2))))
-		#pitch = m.pi/2
-		#roll = 0
+		pitch = round(m.degrees(m.pi/2))
+		roll = round(m.degrees(0))
 		#return [roll, pitch, yaw]
 
 	elif ((x*y*t + z*s) < -0.998):
 		yaw = round(m.degrees(-2*m.atan2(x*m.sin(angle/2), m.cos(angle/2))))
-		#pitch = -m.pi/2
-		#roll = 0
+		pitch = round(m.degrees(-m.pi/2))
+		roll = round(m.degrees(0))
 		#return [roll, pitch, yaw]
 	else:
 		yaw = round(m.degrees(m.atan2(y*s - x*z, 1 - (y*y + z*z) * t)))
+		pitch = round(m.degrees(m.asin(x * y * t + z * s)))
+		roll = round(m.degrees(m.atan2(x * s - y * z * t, 1 - (x*x + z*z) * t)))
 	yaw = yaw + 180 if yaw <= 0 else yaw
-	return yaw
-	#pitch = m.asin(x * y * t + z * s)
-	#roll = m.atan2(x * s - y * z * t, 1 - (x*x + z*z) * t)
-	#return [roll, pitch, yaw]
+	pitch = pitch + 180 if pitch <= 0 else pitch
+	roll = roll + 180 if roll <= 0 else roll
+	return [roll, pitch, yaw]
 
 
 # create the Robot instance.
@@ -116,9 +117,10 @@ while supervisor.step(timestep) != -1:
 	axisAngle = can.getField("rotation").getSFRotation()
 	axisAngle = [round(a,3) for a in axisAngle]
 	eulerAngle = axisangle2euler(axisAngle)
+	print(eulerAngle)
 	#print(axisAngle)
 	#print(eulerAngle)
-	print("CAN: ", round(can_pos.getSFVec3f()[1],6)*100, "\tTCP: ", round(tcp.getPosition()[1], 6)*100)
+	#print("CAN: ", round(can_pos.getSFVec3f()[1],6)*100, "\tTCP: ", round(tcp.getPosition()[1], 6)*100)
 	#print(axisangle2euler())
 	can.resetPhysics()
 	# if robot_connector.getPresence():

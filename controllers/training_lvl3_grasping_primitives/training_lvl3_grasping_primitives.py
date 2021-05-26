@@ -15,13 +15,13 @@ from P10_DRL_Mark_SimpleEnv.envs import P10_DRL_Mark_SimpleEnv
 from P10_RL_env_v01.envs import P10RLEnv
 
 if __name__ == '__main__':
-    neurons = 256
+    neurons = 128
     n_games = 1000
-    itername=str(n_games) + "_games_OnlyRotation_NoDisplacement_" + str(neurons) + "neurons_1000NewtonGrasp"#_16actions" # alwaysreset
+    itername=str(n_games) + "_games_WidthWiseDisplacement_" + str(neurons) + "neurons_214NewtonGrasp_8actions_axisangle_090gamma" # alwaysreset
     
     env = P10_DRL_Lvl3_Grasping_Primitives(itername)
     shutil.copy(env.own_path, env.path)
-    agent = Agent(gamma=0.99, epsilon=1.0, batch_size=64, n_actions=env.action_shape, eps_end=0.01, input_dims=[env.state_shape], lr=0.003, chkpt_dir=env.path, fc1_dims=neurons, fc2_dims=neurons)
+    agent = Agent(gamma=0.90, epsilon=1.0, batch_size=64, n_actions=env.action_shape, eps_end=0.01, input_dims=[env.state_shape], lr=0.003, chkpt_dir=env.path, fc1_dims=neurons, fc2_dims=neurons)
     scores, eps_history = [], []
                 
     best_score = env.reward_range[0]
