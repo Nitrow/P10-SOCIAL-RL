@@ -10,6 +10,8 @@ import math as m
 import shutil
 import shap
 import torch as T
+import matplotlib.pyplot as plt
+
 
 from P10_DRL_SHAP_TEST.envs import P10_DRL_SHAP_TEST
 
@@ -17,7 +19,7 @@ if __name__ == '__main__':
     load_checkpoint = False
     chkpt_path = "/home/harumanager/P10-XRL/controllers/shap_test/data/DQN - 2021-05-26 16_43_04P10_DRL_Lvl3_Grasping_Primitives_Test"
     neurons = 128
-    n_games = 1
+    n_games = 10
     itername="Test"#str(n_games) + "_games_WidthWiseDisplacement_" + str(neurons) + "neurons_214NewtonGrasp_8actions_axisangle_090gamma" # alwaysreset
     #device = T.device('cuda:0')
     device = T.device('cpu')
@@ -89,10 +91,33 @@ if __name__ == '__main__':
     testTensor = T.tensor([episodeMemory[-1]])
     print(testTensor.shape)
     print("Creating explainer...")
+    
+    print(agent.Q_eval)
+    
     e = shap.DeepExplainer(agent.Q_eval, obsTensor)
     print("...done...")
     shap_values = e.shap_values(testTensor)
-    print(shap_values)
-
-
+    print(len(shap_values))
+    print(len(shap_values[0]))
+    print(shap_values[0])
+    print('-----------')
+    print(min(shap_values[0]), max(shap_values[0]))
+    #shap.plots.waterfall(shap_values)
+    print("***************************************")
+    print("Output", agent.Q_eval(testTensor))
+    #print("Chosen action", env.action_code[T.argmax(agent.Q_eval(testTensor)).item()
+    plt.plot(shap_values[0][0][0:3], [i for i in range(3)], 'go')
+    plt.plot(shap_values[1][0][3:6], [i for i in range(3)], 'bo')
+    plt.plot(shap_values[2][0][6:9], [i for i in range(3)], 'yo')
+    plt.plot(shap_values[3][0][9:12], [i for i in range(3)], 'ro')
+    plt.show()
+    print("Green", sum([abs(x) for x in shap_values[0][0]]))
+    print("Blue", sum([abs(x) for x in shap_values[1][0]]))
+    print("Yellow", sum([abs(x) for x in shap_values[2][0]]))
+    print("Red", sum([abs(x) for x in shap_values[3][0]]))
+    env.supervisor.step(env.TIME_STEP)
+    # plt.plot(shap_values[0][0], [i for i in range(len(shap_values[0][0]))], 'go')
+    # plt.plot(shap_values[1][0], [i for i in range(len(shap_values[0][0]))], 'bo')
+    # plt.plot(shap_values[2][0], [i for i in range(len(shap_values[0][0]))], 'yo')
+    # plt.plot(shap_values[3][0], [i for i in range(len(shap_values[0][0]))], 'ro')
 

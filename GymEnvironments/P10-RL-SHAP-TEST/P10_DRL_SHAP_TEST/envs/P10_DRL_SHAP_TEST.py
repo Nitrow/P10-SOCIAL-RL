@@ -40,15 +40,15 @@ class P10_DRL_SHAP_TEST(gym.Env):
         self.can_yellow_node = self.supervisor.getFromDef("YELLOW_ROTATED_CAN_2")
         self.can_red_node = self.supervisor.getFromDef("RED_ROTATED_CAN_3")
         self.can_blue_node = self.supervisor.getFromDef("BLUE_ROTATED_CAN_1")
-        self.cans = [self.can_green_node, self.can_yellow_node, self.can_red_node, self.can_blue_node]
+        self.cans = [self.can_green_node, self.can_blue_node, self.can_yellow_node, self.can_red_node]
         self.spawns = {"GREEN" : [2.0, 2.2], "YELLOW" : [2.3, 2.5], "BLUE" : [1.7, 1.9], "RED" : [1.4, 1.6]}
         self.rotations = self._util_readRotationFile('rotations.txt')#[0.577, 0.577, 0.577, 2.094]
 
         self.total_rewards = 0
         self.reward = 0
-        
+
         self.counter = 0
-        self.color_code = {"GREEN" : 2, "YELLOW" : 0, "BLUE" : -1, "RED" : 5}
+        self.color_code = {"GREEN" : 1, "YELLOW" : 0, "BLUE" : 0, "RED" : 1}
         self.action_code = {0 : "GREEN", 1 : "BLUE", 2 : "YELLOW", 3 : "RED"}
         # Action: open/close finger, rotate joint, go up/down
         self.action_shape = 4
@@ -75,12 +75,17 @@ class P10_DRL_SHAP_TEST(gym.Env):
         self.counter += 1
         state = [0.0] * self.state_shape
         self.reward = 0
+        distances = []
         #print(self.rotations)
         # for rotation in self.rotations:
         #     print(rotation)
         #     for can in self.cans:
         #         can.getField("rotation").setSFRotation(rotation)
         #     [self.supervisor.step(self.TIME_STEP) for i in range(100)]
+        for i in range(len(self.cans)):
+            distances.append(self.cans[i].getField("translation").getSFVec3f()[0])
+        distSorted=sorted(range(len(distances)),key=lambda x:distances[x])
+
         for can in self.cans:
             number = int(can.getDef().split("_")[-1])
             color = can.getDef().split("_")[0]
@@ -94,11 +99,12 @@ class P10_DRL_SHAP_TEST(gym.Env):
             #rotation = [round(x,3) for x in can.getField("rotation").getSFRotation()]
             rotation = self.axisangle2euler(can.getField("rotation").getSFRotation())
             if action == number:
-                self.reward = self.reward + 1 if rotation[2] != 180 else self.reward - 4
+                self.reward = self.reward + 1 if rotation[2] != 180 else self.reward -1
                 self.reward += self.color_code[color]
-                #self.reward = self.reward + 1 if rotation[2] != 180 else self.reward - 2
-            state[i] = float(rotation[2])
-            state[i+1] = float(max(0.01/translation[0],2))
+                self.reward += distSorted.index(number)
+            rot = 1 if rotation[2] != 180 else 0
+            state[i] = rot #float(rotation[2])
+            state[i+1] = round(distances[number],3)
             state[i+2] = float(self.color_code[color])
 
         if self.counter >= 2000:
