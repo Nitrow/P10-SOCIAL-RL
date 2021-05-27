@@ -23,9 +23,9 @@ if __name__ == '__main__':
     episodeMemory = []
     env = P10_DRL_D3QNEnv()
     best_score = -np.inf
-    device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
+    device = T.device('cpu')
     load_checkpoint = False
-    n_games = 5
+    n_games = 1
     agent = DuelingDDQNAgent(gamma=0.99, epsilon=1.0, lr=0.0001,
                          input_dims=(env.observation_space.shape),
                          n_actions=env.action_space.n, mem_size=50000, eps_min=0.05,
@@ -84,7 +84,17 @@ if __name__ == '__main__':
     
     obsTensor = T.tensor(episodeMemory) 
     testTensor = T.tensor([episodeMemory[-1]])
-    e = shap.DeepExplainer(agent.q_next, obsTensor)
+    q_evalarray = np.asarray(float(agent.q_next))
+    
+    
+    #print(q_evalarray[1])
+    
+    
+    
+    q_evalTensor = T.tensor(q_evalarray)
+    
+    print(q_evalTensor)
+    e = shap.DeepExplainer(q_evalarray[1], obsTensor)
     shap_values = e.shap_values(testTensor)
     print(shap_values)
     

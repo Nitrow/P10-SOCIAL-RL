@@ -62,7 +62,7 @@ class P10_DRL_D3QNEnv(gym.Env):
         
           
         self.action_space = spaces.Discrete(7)
-        self.observation_space = spaces.Box(low=-10, high=10, shape=(60,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-10, high=10, shape=(48,), dtype=np.float32)
         
         
     def reset(self):
@@ -84,7 +84,7 @@ class P10_DRL_D3QNEnv(gym.Env):
         self.total_rewards = 0    
         self.done = False    
 
-        state = [0]*60
+        state = [0]*48
         return state
 
 
@@ -100,7 +100,7 @@ class P10_DRL_D3QNEnv(gym.Env):
             reward = 1 - self.cansDict["Can " + str(action+1)]["Position"][0]
             yaw =self._util_axisangle2euler(self.cansDict["Can " + str(action+1)]["Orientation"])
             reward += yaw*(math.pi/180)
-            reward += self.cansDict["Can " + str(action+1)]["Color"][0]*1 + self.cansDict["Can " + str(action+1)]["Color"][1]*2 + self.cansDict["Can " + str(action+1)]["Color"][2]*3
+            reward += self.cansDict["Can " + str(action+1)]["Color"]
             
             
         else:
@@ -148,20 +148,28 @@ class P10_DRL_D3QNEnv(gym.Env):
         for i in range(len(self.cans)):
             self.position = self.cans[i].getField("translation").getSFVec3f()
             self.orientation = self.cans[i].getField("rotation").getSFRotation()
-            self.color = self.cans[i].getField("color").getSFColor()
+            self.RGBcolor = self.cans[i].getField("color").getSFColor()
+            if self.RGBcolor [0] == 1:
+                self.color = 1
+            elif  self.RGBcolor [1] == 1:
+                self.color = 2
+            elif self.RGBcolor [2] == 1:
+                self.color = 3   
+            
+            
             if self.position[0] < 1.7 and self.position[0] > -0.5 :
 
-                state[i] = self.position + self.orientation + self.color
+                state[i] = self.position + self.orientation + [self.color]
                 canDict = {"Position": self.position,
                    "Orientation": self.orientation,
                    "Color" : self.color}
                    
                 self.cansDict.update ({"Can " + str(i+1): canDict})
             else:
-                state[i] = [0]*3 + [0]*4 + [0]*3
+                state[i] = [0]*3 + [0]*4 + [0]
                 canDict = {"Position": [0]*3,
                    "Orientation": [0]*4,
-                   "Color" : [0]*3}   
+                   "Color" : [0]}   
                    
                 self.cansDict.update ({"Can " + str(i+1): canDict})    
                 

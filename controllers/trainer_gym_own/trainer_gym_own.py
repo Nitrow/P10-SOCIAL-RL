@@ -27,7 +27,7 @@ if __name__ == '__main__':
                 
     agent = Agent(alpha=0.0003, beta=0.0003, reward_scale=2, env_id=env.id, 
                 input_dims=env.observation_space.shape, tau=0.005,
-                env=env, batch_size=512, layer1_size=512, layer2_size=512,
+                env=env, batch_size=512, layer1_size=128, layer2_size=128,
                 n_actions=env.action_space.shape[0])
                 
     best_score = env.reward_range[0]
