@@ -62,7 +62,7 @@ class P10_DRL_D3QNEnv(gym.Env):
         
           
         self.action_space = spaces.Discrete(7)
-        self.observation_space = spaces.Box(low=-10, high=10, shape=(48,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-10, high=10, shape=(12,), dtype=np.float32)
         
         
     def reset(self):
@@ -84,7 +84,7 @@ class P10_DRL_D3QNEnv(gym.Env):
         self.total_rewards = 0    
         self.done = False    
 
-        state = [0]*48
+        state = [0]*12
         return state
 
 
@@ -95,17 +95,19 @@ class P10_DRL_D3QNEnv(gym.Env):
            
         state = self.getCans()
         #print (state)
-        
-        if action < 6 and self.cansDict["Can " + str(action+1)]["Position"][0] > 0:
-            reward = 1 - self.cansDict["Can " + str(action+1)]["Position"][0]
-            yaw =self._util_axisangle2euler(self.cansDict["Can " + str(action+1)]["Orientation"])
-            reward += yaw*(math.pi/180)
+        if action < 6 and self.cansDict["Can " + str(action+1)]["Position"] > 0:
+            reward = 1 - self.cansDict["Can " + str(action+1)]["Position"]
+            #yaw = self.cansDict["Can " + str(action+1)]["Orientation"]
+            #print("distance reward: ", 1 - self.cansDict["Can " + str(action+1)]["Position"])
+            
+            #reward += yaw*(math.pi/180)
+            
+            #print("angle reward: ",  yaw*(math.pi/180))
             reward += self.cansDict["Can " + str(action+1)]["Color"]
-            
-            
+            #print("color reward>: ", self.cansDict["Can " + str(action+1)]["Color"]*0.1)
         else:
             reward = 0
-        #print(self.cansDict)
+        
         #print(reward)
         
         
@@ -114,13 +116,16 @@ class P10_DRL_D3QNEnv(gym.Env):
         self.counter = self.counter + 1
   
        
-        for i in range(len(self.cans)):
-            if self.cansDict["Can " + str(i+1)]["Position"][0] < -0.49:
-                self.cans[i].getField("translation").setSFVec3f([1.79,0.83,0.66])
+      
+       # if self.cansDict["Can 6"]["Position"] < -0.49:
+             
+      #      for i in range(len(self.cans)):    
+        #        
+        #        self.cans[i].getField("translation").setSFVec3f([1.79,0.83,0.66])
         
         counter =+ 1
         
-        if self.counter == 400:
+        if self.counter == 2000:
             self.done = True
         
         
@@ -146,8 +151,8 @@ class P10_DRL_D3QNEnv(gym.Env):
     def getCans(self):
         state = [0]*6
         for i in range(len(self.cans)):
-            self.position = self.cans[i].getField("translation").getSFVec3f()
-            self.orientation = self.cans[i].getField("rotation").getSFRotation()
+            self.position = self.cans[i].getField("translation").getSFVec3f()[0]
+            self.orientation = self._util_axisangle2euler(self.cans[i].getField("rotation").getSFRotation())
             self.RGBcolor = self.cans[i].getField("color").getSFColor()
             if self.RGBcolor [0] == 1:
                 self.color = 1
@@ -157,19 +162,19 @@ class P10_DRL_D3QNEnv(gym.Env):
                 self.color = 3   
             
             
-            if self.position[0] < 1.7 and self.position[0] > -0.5 :
+            if self.position < 1.7 and self.position > -0.5 :
 
-                state[i] = self.position + self.orientation + [self.color]
+                state[i] = [self.position, self.color]
                 canDict = {"Position": self.position,
                    "Orientation": self.orientation,
                    "Color" : self.color}
                    
                 self.cansDict.update ({"Can " + str(i+1): canDict})
             else:
-                state[i] = [0]*3 + [0]*4 + [0]
-                canDict = {"Position": [0]*3,
-                   "Orientation": [0]*4,
-                   "Color" : [0]}   
+                state[i] = [0, 0]
+                canDict = {"Position": 0,
+                   "Orientation": 0,
+                   "Color" : 0}   
                    
                 self.cansDict.update ({"Can " + str(i+1): canDict})    
                 

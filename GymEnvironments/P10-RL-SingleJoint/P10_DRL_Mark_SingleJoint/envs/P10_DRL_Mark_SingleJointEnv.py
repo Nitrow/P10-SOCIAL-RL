@@ -45,7 +45,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.tcp = self.supervisor.getFromDef('TCP')
         self.robot_pos = np.array(self.robot_node.getPosition())
         
-        self.timeout = 1500
+        self.timeout = 1000
         
                 
         self.joint_names = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
@@ -98,9 +98,12 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         
         
     def reset(self):
-        print('\n ------------------------------------ RESET ------------------------------------ \n')
-        self.supervisor.simulationReset()
-        self.counter = 0
+        
+        
+        
+       
+            
+        
         
         self._getSensors()
         self._getMotors()
@@ -152,7 +155,9 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
             print("Timeout")
             self.done = True
             self._setTarget()
-        if self.distancey  < 0.01 and self.distancey2 < 0.01:
+            self.counter = 0
+            self.supervisor.simulationReset()
+        if self.distancey  < 0.02 and self.distancey2 < 0.02:
             self.epOutcome = "Success"
             print("Success")
             self._setTarget()
@@ -164,6 +169,8 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
             self._setTarget()
             self.done = True
             reward += self.collisionReward
+            self.counter = 0
+            self.supervisor.simulationReset()
         #print(self.done)
         self.total_rewards += reward
         if self.done:
@@ -206,14 +213,14 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         # generate a point around the circle 0.75m far from the robot, making sure it's far away 
 
         
-        positions = [[-0.4, -0.2, 0, 0.2, 0.4], [0.4, 0.425, 0.45]]   
+        positions = [[-0.45, -0.2, 0, 0.2, 0.45], [0.4, 0.425, 0.45]]   
         
-        x = positions[0][random.randint(0, 4)]
+        x = random.uniform(-0.45, 0.45)
         
-        z = positions[1][random.randint(0, 2)]
+        z = 0.47
         y = 0.15
             
-        self.target = list(self.robot_pos + np.array([x, y, z]))
+        self.target = list(np.array([x, y + self.robot_pos[1], z]))
 
             
         self.goal_node.setSFVec3f(self.target)

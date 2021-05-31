@@ -6,6 +6,7 @@ from dueling_ddqn_agent import DuelingDDQNAgent
 from utils import plot_learning_curve, make_env
 import shap
 import torch as T
+import matplotlib.pyplot as plt
 #import sys
 
 
@@ -14,22 +15,17 @@ import torch as T
 from P10_DRL_D3QN.envs import P10_DRL_D3QNEnv
 
 if __name__ == '__main__':
-    feature_names = ['can 1 x', 'can 1 y', 'can 1 z', 'can 1 rot x', 'can 1 roty', 'can 1 rotz', 'can 1 angle', 'can 1 color x', 'can 1 color y', 'can 1 color z',
-                     'can 2 x', 'can 2 y', 'can 2 z', 'can 2 rot x', 'can 2 roty', 'can 2 rotz', 'can 2 angle', 'can 2 color x', 'can 2 color y', 'can 2 color z',      
-                     'can 3 x', 'can 3 y', 'can 3 z', 'can 3 rot x', 'can 3 roty', 'can 3 rotz', 'can 3 angle', 'can 3 color x', 'can 3 color y', 'can 3 color z',      
-                     'can 4 x', 'can 4 y', 'can 4 z', 'can 4 rot x', 'can 4 roty', 'can 4 rotz', 'can 4 angle', 'can 4 color x', 'can 4 color y', 'can 4 color z',      
-                     'can 5 x', 'can 5 y', 'can 5 z', 'can 5 rot x', 'can 5 roty', 'can 5 rotz', 'can 5 angle', 'can 5 color x', 'can 5 color y', 'can 5 color z',      
-                     'can 6 x', 'can 6 y', 'can 6 z', 'can 6 rot x', 'can 6 roty', 'can 6 rotz', 'can 6 angle', 'can 6 color x', 'can 6 color y', 'can 6 color z']
+    
     episodeMemory = []
     env = P10_DRL_D3QNEnv()
     best_score = -np.inf
-    device = T.device('cpu')
-    load_checkpoint = False
+    device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
+    load_checkpoint = True
     n_games = 1
-    agent = DuelingDDQNAgent(gamma=0.99, epsilon=1.0, lr=0.0001,
+    agent = DuelingDDQNAgent(gamma=0.99, epsilon=1, lr=0.0001,
                          input_dims=(env.observation_space.shape),
                          n_actions=env.action_space.n, mem_size=50000, eps_min=0.05,
-                         batch_size=32, replace=10000, eps_dec=1e-5,
+                         batch_size=32, replace=10000, eps_dec=1e-4,
                          chkpt_dir='models/', algo='DuelingDDQNAgent',
                          env_name='P10_DRL_D3QNEnv')
 
@@ -81,28 +77,34 @@ if __name__ == '__main__':
 
      
      
-    
+    agent.q_eval.shapValue = True
     obsTensor = T.tensor(episodeMemory) 
     testTensor = T.tensor([episodeMemory[-1]])
-    q_evalarray = np.asarray(float(agent.q_next))
+    
+    #q_evalarray = np.asarray(agent.q_eval)
     
     
     #print(q_evalarray[1])
     
     
     
-    q_evalTensor = T.tensor(q_evalarray)
-    
-    print(q_evalTensor)
-    e = shap.DeepExplainer(q_evalarray[1], obsTensor)
+    #q_evalTensor = T.tensor(agent.q_eval)
+    e = shap.DeepExplainer(agent.q_eval, obsTensor)
     shap_values = e.shap_values(testTensor)
-    print(shap_values)
     
+    #print("Chosen action", env.action_code[T.argmax(agent.Q_eval(testTensor)).item()
+    plt.plot(shap_values[0][0][0:2], [i for i in range(2)], 'bo')
+    plt.plot(shap_values[1][0][2:4], [i for i in range(2)], 'go')
+    plt.plot(shap_values[2][0][4:6], [i for i in range(2)], 'ro')
+    plt.plot(shap_values[3][0][6:8], [i for i in range(2)], 'ko')
+    plt.plot(shap_values[4][0][8:10], [i for i in range(2)], 'mo')
+    plt.plot(shap_values[5][0][10:12], [i for i in range(2)], 'yo')
+    plt.show()
+   # print("Green", sum([abs(x) for x in shap_values[0][0]]))
+ #   print("Blue", sum([abs(x) for x in shap_values[1][0]]))
+   # print("Yellow", sum([abs(x) for x in shap_values[2][0]]))
+  #  print("Red", sum([abs(x) for x in shap_values[3][0]]))
     
+    # rescale state log 
     
-    
-    
-    
-    
-    
-    
+ 

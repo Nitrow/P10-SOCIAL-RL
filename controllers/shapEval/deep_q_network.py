@@ -8,7 +8,9 @@ import numpy as np
 class DuelingDeepQNetwork(nn.Module):
     def __init__(self, lr, n_actions, name, input_dims, chkpt_dir):
         super(DuelingDeepQNetwork, self).__init__()
-
+	
+        self.shapValue = False
+	
         self.checkpoint_dir = chkpt_dir
         self.checkpoint_file = os.path.join(self.checkpoint_dir, name)
 
@@ -28,10 +30,16 @@ class DuelingDeepQNetwork(nn.Module):
         flat1 = F.relu(self.fc1(state))
         flat2 = F.relu(self.fc2(flat1))
 
+	
         V = self.V(flat2)
         A = self.A(flat2)
-
-        return V, A
+	
+        if self.shapValue == False:
+             return V, A
+		
+        else:
+             return A	
+	
 
     def save_checkpoint(self):
         print('... saving checkpoint ...')

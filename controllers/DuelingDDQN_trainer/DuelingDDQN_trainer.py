@@ -11,7 +11,7 @@ if __name__ == '__main__':
     env = P10_DRL_D3QNEnv()
     best_score = -np.inf
     load_checkpoint = False
-    n_games = 100
+    n_games = 1
     agent = DuelingDDQNAgent(gamma=0.99, epsilon=1.0, lr=0.0001,
                      input_dims=(env.observation_space.shape),
                      n_actions=env.action_space.n, mem_size=50000, eps_min=0.05,

@@ -8,8 +8,8 @@ import numpy as np
 from datetime import datetime
 
 from P10_DRL_Mark.envs import P10_DRL_Mark_Env
-from P10_DRL_Mark_SingleJoint.envs import P10_DRL_Mark_SingleJointEnv
-#from P10_DRL_GoToBucket.envs import P10_DRL_GoToBucketEnv
+#from P10_DRL_Mark_SingleJoint.envs import P10_DRL_Mark_SingleJointEnv
+from P10_DRL_GoToBucket.envs import P10_DRL_GoToBucketEnv
 #from P10_DRL_Mark_SimpleEnv.envs import P10_DRL_Mark_SimpleEnv
 #from P10_RL_env_v01.envs import P10RLEnv
 
@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
     n_games = 5000
     dt = 32
-    env = P10_DRL_Mark_SingleJointEnv()
+    env = P10_DRL_GoToBucketEnv()
     #env = P10_DRL_Mark_SimpleEnv()
     #env = P10_DRL_Mark_Env()
     # agent = Agent(alpha=0.0003, beta=0.0003, reward_scale=2, env_id=env.id, 
@@ -25,9 +25,11 @@ if __name__ == '__main__':
                 # env=env, batch_size=256, layer1_size=256, layer2_size=256,
                 # n_actions=env.action_space.shape[0])
                 
-    agent = Agent(alpha=0.0003, beta=0.0003, reward_scale=2, env_id=env.id, 
+    print(env.observation_space.shape)
+                
+    agent = Agent(alpha=0.0005, beta=0.0005, reward_scale=2, env_id=env.id, 
                 input_dims=env.observation_space.shape, tau=0.005,
-                env=env, batch_size=512, layer1_size=128, layer2_size=128,
+                env=env, batch_size=512, layer1_size=256, layer2_size=256,
                 n_actions=env.action_space.shape[0])
                 
     best_score = env.reward_range[0]
