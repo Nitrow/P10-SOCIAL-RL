@@ -16,12 +16,14 @@ from P10_RL_env_v01.envs import P10RLEnv
 
 if __name__ == '__main__':
     neurons = 128
-    n_games = 1000
-    itername=str(n_games) + "_games_WidthWiseDisplacement_" + str(neurons) + "neurons_214NewtonGrasp_8actions_axisangle_090gamma" # alwaysreset
+    n_games = 100
+    plt_avg = 10
+    vdist = 1
+    itername=str(n_games) + "_games_WidthWiseDisplacement" + str(vdist) + "cm_" + str(neurons) + "neurons_214NewtonGrasp_8actions_axisangle_000gamma" # alwaysreset
     
-    env = P10_DRL_Lvl3_Grasping_Primitives(itername)
+    env = P10_DRL_Lvl3_Grasping_Primitives(itername, vdist, plt_avg)
     shutil.copy(env.own_path, env.path)
-    agent = Agent(gamma=0.90, epsilon=1.0, batch_size=64, n_actions=env.action_shape, eps_end=0.01, input_dims=[env.state_shape], lr=0.003, chkpt_dir=env.path, fc1_dims=neurons, fc2_dims=neurons)
+    agent = Agent(gamma=0.0, epsilon=1.0, batch_size=64, n_actions=env.action_shape, eps_end=0.01, input_dims=[env.state_shape], lr=0.003, chkpt_dir=env.path, fc1_dims=neurons, fc2_dims=neurons)
     scores, eps_history = [], []
                 
     best_score = env.reward_range[0]
@@ -54,17 +56,17 @@ if __name__ == '__main__':
             steps += 1
             
         score_history.append(score)
-        avg_score = np.mean(score_history[-100:])
+        avg_score = np.mean(score_history[-env.plt_avg:])
         eps_history.append(agent.epsilon)
 
         if avg_score > best_score:
             best_score = avg_score
             if not load_checkpoint: agent.save_models()
 
-        print('Episode {}: score {} trailing 100 games avg {} steps {} {} scale {}'.format(i, score, avg_score, steps, env.id, 1))
+        print('Episode {}: score {} trailing 50 games avg {} steps {} {} scale {}'.format(i, score, avg_score, steps, env.id, 1))
     # Run the plotting
     #if not load_checkpoint: plot_learning_curve([i+1 for i in range(n_games)], score_history, 'plots/' + env.id)
-    plot_learning_curve([i+1 for i in range(n_games)], score_history, env.path + env.id)
+    plot_learning_curve([i+1 for i in range(n_games)], score_history, env.path + env.id, env.plt_avg)
 
 
 

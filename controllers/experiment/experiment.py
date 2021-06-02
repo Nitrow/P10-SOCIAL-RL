@@ -8,8 +8,8 @@ import os
 import math
 
 # easy or hard
-gameMode = "easy"
-condition = "control"
+gameMode = "medium"
+condition = "all"
 experiment_conditions = {"control" : [False, False, False],
                          "all"     : [True, True, True],
                          "written"  : [False, False, True],
@@ -198,7 +198,7 @@ def countCansOnConveyor(missed, cansOnConveyor):
     for n in range(root_children_n):
         if "CAN" in root_children.getMFNode(n).getDef():
             can = root_children.getMFNode(n)
-            can_id = can.getId()
+            can_id = can.getId+()
             x, y, z = can.getField("translation").getSFVec3f()
             # If we already have the can, check if it should be removed
             if can_id in list(cansOnConveyor.keys()):
