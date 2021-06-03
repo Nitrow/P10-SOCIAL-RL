@@ -1,0 +1,1 @@
+Action space: move_down, move_up, close_fingers, rotate+, rotate-, open_fingersDQN - 2021-06-02 22_39_46P10_DRL_Lvl3_Grasping_Primitives_1000episodes_NoConveyorSpeedNoRotation_binaryplotting_100_512neurons - Rewards successfulgrasp-1 - Timeout at 100

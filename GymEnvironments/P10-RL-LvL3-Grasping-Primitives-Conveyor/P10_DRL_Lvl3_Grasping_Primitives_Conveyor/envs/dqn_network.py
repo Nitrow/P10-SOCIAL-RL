@@ -35,7 +35,9 @@ class DQN(nn.Module):
         T.save(self.state_dict(), self.checkpoint_file)
 
     def load_checkpoint(self):
-        self.load_state_dict(T.load(self.checkpoint_file))
+        filename = "/home/harumanager/P10-XRL/controllers/training_lvl3_grasping_primitives_conveyor/test/DQN - 2021-06-02 16_56_36P10_DRL_Lvl3_Grasping_Primitives_1000episodes_NoConveyorSpeedNoRotation_binaryplotting_100_512neurons/" + self.name
+        #self.load_state_dict(T.load(self.checkpoint_file))
+        self.load_state_dict(T.load(filename))
 
 
 class Agent():

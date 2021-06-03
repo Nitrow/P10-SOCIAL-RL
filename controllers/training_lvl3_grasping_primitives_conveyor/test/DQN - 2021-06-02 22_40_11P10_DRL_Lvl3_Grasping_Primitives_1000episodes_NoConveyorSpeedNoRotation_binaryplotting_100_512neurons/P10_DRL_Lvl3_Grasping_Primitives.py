@@ -10,54 +10,17 @@ import random
 import math as m
 import matplotlib.pyplot as plt
 from datetime import datetime
-import torch as T
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-#from dqn_network import DQN
+import torch
 
 import os, sys
 
 from controller import Robot, Motor, Supervisor, Connector
 
-class DQN(nn.Module):
-    def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions, chkpt_dir='tmp/dqn'):
-        super(DQN, self).__init__()
-        self.name = "DQN_Grasping"
-        self.input_dims = input_dims
-        self.fc1_dims = fc1_dims
-        self.fc2_dims = fc2_dims
-        self.n_actions = n_actions
-        self.fc1 = nn.Linear(*self.input_dims, self.fc1_dims) # * unpacks a list
-        self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
-        self.fc3 = nn.Linear(self.fc2_dims, self.n_actions)
-        self.optimizer = optim.Adam(self.parameters(), lr=lr)
-        self.loss = nn.MSELoss()
-        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
-        self.to(self.device)
-        self.checkpoint_dir = os.getcwd().split("/P10-XRL/")[0] + "/P10-XRL/GymEnvironments/P10-RL-LvL3-Grasping-Primitives-Conveyor/P10_DRL_Lvl3_Grasping_Primitives_Conveyor/envs/" + chkpt_dir
-        #self.checkpoint_dir = chkpt_dir
-        self.checkpoint_file = os.path.join(self.checkpoint_dir, self.name)
-
-
-    def forward(self, state):
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
-        actions = self.fc3(x)
-        return actions
-
-    def save_checkpoint(self):
-        T.save(self.state_dict(), self.checkpoint_file)
-
-    def load_checkpoint(self):
-        self.load_state_dict(T.load(self.checkpoint_file))
-
-
-class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
+class P10_DRL_Lvl3_Grasping_Primitives(gym.Env):
 
     def __init__(self, itername, vdist, plt_avg):
 
-        random.seed(3)
+        random.seed(1)
         self.vdist = vdist/100
         self.plt_avg = plt_avg
         self.test = False
@@ -82,19 +45,10 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
         self.tcp_can_total_dist = 0
         self.tcp_can_vertical_dist = 0
         self.tcp_can_horizontal_dist = 0
-        # Preparing Grasping DQN
-        self.grasping_DQN = DQN(0, n_actions=8, input_dims=[7], fc1_dims=128, fc2_dims=128, chkpt_dir='models')
-        print(self.grasping_DQN.checkpoint_file)
-        self.grasping_DQN.load_checkpoint()
-
         self.sensor_fingers[0].enable(self.TIME_STEP)
         self.sensor_fingers[1].enable(self.TIME_STEP)
         self.timeout = 100
-
-        self.conveyor = self.supervisor.getFromDef("CONVEYOR")
-        #self.conveyor_speed_field = self.conveyor.getField("speed")#getSFFloat(), setSFFloat(new_speed)
-        #self.conveyor_speed = 0.5
-
+        
         self.rotations = self._util_readRotationFile('rotations.txt')#[0.577, 0.577, 0.577, 2.094]
 
         self.joint_names = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
@@ -120,9 +74,7 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
 
         self.rewardstr = "successfulgrasp-1"
         self.figure_file = self.path + "{} - Rewards {} - Timeout at {}".format(self.id, self.rewardstr, str(self.timeout))
-        self.success_file = self.path + "successes"
-        self.bugged = False
-
+        
         self._setTarget()
 
         self.up_pose = [16.63, -111.19, -63.15, -96.24, 89.47]
@@ -132,10 +84,9 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
 
         self.actionScale = 3
         # Action: open/close finger, rotate joint, go up/down
-        self.grasp_action_shape = 8
-        self.grasp_actions = [m.radians(22.5*i) for i in range(self.grasp_action_shape)]
-        self.action_shape = 200
-        self.state_shape = 1
+        self.action_shape = 8
+        self.actions = [m.radians(22.5*i) for i in range(self.action_shape)]
+        self.state_shape = 7
         #self.action_space = spaces.Box(low=-1, high=1, shape=(self.action_shape,), dtype=np.float32)
         self.action_space = spaces.Discrete(self.action_shape)
         
@@ -144,17 +95,14 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
         self.documentation = "Action space: move_down, move_up, close_fingers, rotate+, rotate-, open_fingers"
         self.documentation += "{} - Rewards {} - Timeout at {}\n".format(self.id, self.rewardstr, str(self.timeout))
         self.saveEpisode(self.documentation)
-        self.success = 0
         print("Robot initilized!")
         
 
     def reset(self):
         print('\n ------------------------------------ RESET ------------------------------------ \n')
         self.supervisor.simulationReset()
-        self.conveyor.restartController()
         self.supervisor.step(self.TIME_STEP)  
         self.counter = 0
-        self.bugged = False
         self.stepCounter = 0
         self.reward = 0
         self._getMotors()
@@ -164,15 +112,11 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
         self.finger2.resetPhysics()
         self.total_rewards = 0    
         self.done = False
-        self.success = 0
-        self.motors[-1].setPosition(float(1.6))
         state = self.getState()
-        if self.test: print("Initial state: ", state)
         return state
 
 
     def step(self, action):
-
         if self.test:
             print("--------------------")
             print("STEP: ", self.counter)
@@ -182,81 +126,33 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
         self._getSensors()
         self.finger1.resetPhysics()
         self.finger2.resetPhysics()
-        self.goal_node.resetPhysics()
         # Set actions
-        if self.test: print("Setting target...")
-        self._setTarget()
-        if self.test: print("... target set!")
-        for i in range(action):
-            #graspState = self.getState(mode="grasp")
-            #action = self.grasp(graspState)
-            self.supervisor.step(self.TIME_STEP)
-        if self.test: print("Waited for {} timesteps!\n setting graping...".format(action))
-
-        #graspState = self.getState(mode="grasp")
-        #action = self.grasp(graspState)
-        if self.test: print("...grasping set for {}".format(action)) 
-        if self.test: print("Motion primitive initilized!\n... Opening fingers!")
+        self.motors[-1].setPosition(float(self.actions[action]))
+        while not (self.sensors[-1].getValue() - action) < 0.01: self.supervisor.step(self.TIME_STEP)
+        #if not self.isPresence:
         self._action_moveFingers(0)  # Open fingers
         for i in range(5): self.supervisor.step(self.TIME_STEP)
-        if self.test: print("... Moving down!")
         self._action_moveTCP(0)  # Go down
         for i in range(5): self.supervisor.step(self.TIME_STEP)
-        if self.test: print("... Closing fingers!")
         self._action_moveFingers(1)  # close fingers
-        self.reward = -np.linalg.norm(np.array(self.goal_pos.getSFVec3f())-np.array(self.tcp.getPosition()))*100
-        if self.test: print("... Reward acquired: {}".format(self.reward))
         for i in range(5): self.supervisor.step(self.TIME_STEP)
-        if self.test: print("... Moving up!")
         self._action_moveTCP(1)  # Go up
-        if self.test: print("... Waiting for can to slip out!")
-        for i in range(100):
-            #self.goal_node.resetPhysics()
-            self.supervisor.step(self.TIME_STEP)
+        for i in range(100): self.supervisor.step(self.TIME_STEP)
         self.counter = self.counter + 1
-        self.reward = 100 if np.linalg.norm(np.array(self.goal_pos.getSFVec3f())-np.array(self.tcp.getPosition()))*100 < 10 else self.reward
-        #self.reward = -np.linalg.norm(np.array(self.goal_pos.getSFVec3f())-np.array(self.tcp.getPosition()))*100
-        #self.reward = 1 if np.linalg.norm(np.array(self.goal_pos.getSFVec3f())-np.array(self.tcp.getPosition()))*100 < 10 else self.reward
-        if self.test: print("Get new state")
-        state = self.getState()
-        
+        self.reward = 1 if np.linalg.norm(np.array(self.goal_pos.getSFVec3f())-np.array(self.tcp.getPosition()))*100 < 10 else self.partialReward
         if self.test: print("REWARD: ", self.reward)
-        if self.reward == 100:
-            self.success += 1
-            print("\nSuccess\n")
-        if (self.counter >= self.timeout) or self.bugged:
+        if self.reward == 1:
+            if self.test: print("Success")
+        if self.counter >= self.timeout:
             self.done = True
-
+        self._setTarget()
+        state = self.getState()
         if self.test: print("STATE: ", state)
-        #self.total_rewards = self.total_rewards + 1 if self.reward >= 0 else 0
-        self.total_rewards = self.success
-        
+        self.total_rewards += self.reward
         if self.done:
-            print("\n\n\n\n\n{}\n\n\n\n\n".format(self.success))
             self.saveEpisode(str(round(self.total_rewards)) + ";")
             self.plot_learning_curve()
-        #self.supervisor.step(self.TIME_STEP)
         return [state, float(self.reward), self.done, {}]
-
-
-    def grasp(self, state):
-        stateGrasping = T.tensor([state]).to(self.grasping_DQN.device)
-        actions = self.grasping_DQN.forward(stateGrasping)
-        action = T.argmax(actions).item()  # Take the action with the highest Q-score
-        self.motors[-1].setPosition(float(self.grasp_actions[action]))
-        while not (self.sensors[-1].getValue() - m.radians(float(self.grasp_actions[action]))) < 0.01: self.supervisor.step(self.TIME_STEP)
-        #print(m.radians(float(self.grasp_actions[action])), self.sensors[-1].getValue())
-        return action
-
-    def gotStuck(self):
-        finger1_pos = self.finger1.getField("translation").getSFVec3f()
-        finger2_pos = self.finger2.getField("translation").getSFVec3f()
-        #print("FINGERS: " ,np.linalg.norm(np.array(finger1_pos)-np.array(finger2_pos)))
-        #return False
-        if np.linalg.norm(np.array(finger1_pos)-np.array(finger2_pos)) > 1:
-            print("\nBugged out!\n")
-            self.bugged = True
-            return True
 
 
     def _getSensors(self):
@@ -273,24 +169,17 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
 
 
     def _setTarget(self):
-        #rotation = random.choice(self.rotations)
+        rotation = random.choice(self.rotations)
         z = random.uniform(0.4 - self.vdist/2, 0.4 - self.vdist/3) if random.randint(0, 1) else random.uniform(0.4 + self.vdist/2, 0.4 + self.vdist/3)
 
+
         #translation = [-0.01, 0.84, 0.4]
-        x = random.uniform(0.5, 1.5)
-        #translation = [x, 0.84, z]
-        translation = [x, 0.84, 0.4]
+        translation = [-0.01, 0.84, z]
         
-        #self.goal_rot.setSFRotation(rotation)
-        self.goal_rot.setSFRotation([2.7661199999894182e-06, -2.397449999990828e-09, 0.9999999999961744, 1.5708])
-        
+        self.goal_rot.setSFRotation(rotation)
         self.goal_pos.setSFVec3f(translation)
         self.supervisor.step(self.TIME_STEP)
         self.goal_node.resetPhysics()
-
-        #self.conveyor_speed = random.choice([0.3, 0.4, 0.5])
-        #self.conveyor_speed_field.setSFFloat(self.conveyor_speed)
-        
 
     def render(self, mode='human'):
         pass
@@ -301,17 +190,14 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
             f.write(reward)
 
 
-    def getState(self, mode="default"):
+    def getState(self):
         x_dist = abs(self.goal_pos.getSFVec3f()[0] - self.tcp.getPosition()[0])*100
         y_dist = abs(self.goal_pos.getSFVec3f()[2] - self.tcp.getPosition()[2])*100
         state = []
+        state.append(self.sensors[-1].getValue())  # Get joint angle
+        state += self.goal_rot.getSFRotation()
         state.append(x_dist)
-        if mode == "grasp":
-            state.append(y_dist)
-            state.append(self.sensors[-1].getValue())  # Get joint angle
-            state += self.goal_rot.getSFRotation()
-        #elif mode == "default":
-        #    state.append(self.conveyor_speed)
+        state.append(y_dist)
         state = [float(s) for s in state]
         return state
 
@@ -349,7 +235,6 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
                 if counter >= 1: break
                 self.supervisor.step(self.TIME_STEP)
                 prev_pose = pose
-                if self.gotStuck(): break
         return False
 
 
@@ -372,11 +257,7 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
         running_avg = np.zeros(len(self.plot_rewards))
         for i in range(len(running_avg)):
             running_avg[i] = np.mean(self.plot_rewards[max(0, i-self.plt_avg):(i+1)])
-        plt.clf()
         plt.plot(x, running_avg)
         plt.title('Running average of previous '+ str(self.plt_avg) + ' scores')
         plt.savefig(self.figure_file)
-        plt.clf()
-        plt.plot(x, self.plot_rewards)
-        plt.title('Running average of previous '+ str(self.plt_avg) + ' scores')
-        plt.savefig(self.success_file)
+
