@@ -13,7 +13,7 @@ import shutil
 from P10_DRL_SHAP_TEST.envs import P10_DRL_SHAP_TEST
 
 if __name__ == '__main__':
-    load_checkpoint = True
+    load_checkpoint = False
     chkpt_path = "/home/harumanager/P10-XRL/controllers/shap_test/data/DQN - 2021-05-26 16_43_04P10_DRL_Lvl3_Grasping_Primitives_Test"
     neurons = 128
     n_games = 20

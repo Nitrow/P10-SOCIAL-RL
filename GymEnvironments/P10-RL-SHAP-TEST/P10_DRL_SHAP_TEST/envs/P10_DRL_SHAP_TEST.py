@@ -83,30 +83,30 @@ class P10_DRL_SHAP_TEST(gym.Env):
         if self.counter % 60 == 0:
             self.generateCans()
         self.removeCans()
-        # for i in range(len(self.cans)):
-        #     distances.append(self.cans[i].getField("translation").getSFVec3f()[0])
-        # distSorted=sorted(range(len(distances)),key=lambda x:distances[x])
+        for i in range(len(self.cans)):
+            distances.append(self.cans[i].getField("translation").getSFVec3f()[0])
+        distSorted=sorted(range(len(distances)),key=lambda x:distances[x])
 
-        # for can in self.cans:
-        #     number = int(can.getDef().split("_")[-1])
-        #     color = can.getDef().split("_")[0]
-        #     i = number*3
-        #     translation = can.getField("translation").getSFVec3f()
-        #     if translation[0] < 0:
-        #         rotation = random.choice(self.rotations)
-        #         translation[0] = translation[0]+2
-        #         can.getField("translation").setSFVec3f(translation)
-        #         can.getField("rotation").setSFRotation(rotation)
-        #     #rotation = [round(x,3) for x in can.getField("rotation").getSFRotation()]
-        #     rotation = self.axisangle2euler(can.getField("rotation").getSFRotation())
-        #     if action == number:
-        #         self.reward = self.reward + 1 if rotation[2] != 180 else self.reward -1
-        #         self.reward += self.color_code[color]
-        #         self.reward += distSorted.index(number)
-        #     rot = 1 if rotation[2] != 180 else 0
-        #     state[i] = rot #float(rotation[2])
-        #     state[i+1] = round(distances[number],3)
-        #     state[i+2] = float(self.color_code[color])
+        for can in self.cans:
+            number = int(can.getDef().split("_")[-1])
+            color = can.getDef().split("_")[0]
+            i = number*3
+            translation = can.getField("translation").getSFVec3f()
+            if translation[0] < 0:
+                rotation = random.choice(self.rotations)
+                translation[0] = translation[0]+2
+                can.getField("translation").setSFVec3f(translation)
+                can.getField("rotation").setSFRotation(rotation)
+            #rotation = [round(x,3) for x in can.getField("rotation").getSFRotation()]
+            rotation = self.axisangle2euler(can.getField("rotation").getSFRotation())
+            if action == number:
+                self.reward = self.reward + 1 if rotation[2] != 180 else self.reward -1
+                self.reward += self.color_code[color]
+                self.reward += distSorted.index(number)
+            rot = 1 if rotation[2] != 180 else 0
+            state[i] = rot #float(rotation[2])
+            state[i+1] = round(distances[number],3)
+            state[i+2] = float(self.color_code[color])
 
         if self.counter >= 2000:
             self.done = True
