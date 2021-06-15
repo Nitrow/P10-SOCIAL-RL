@@ -12,8 +12,8 @@ class DeepQNetwork(nn.Module):
         self.checkpoint_file = os.path.join(self.checkpoint_dir, name)
 
 
-        self.fc1 = nn.Linear(input_dims[0], 512)
-        self.fc2 = nn.Linear(512, n_actions)
+        self.fc1 = nn.Linear(input_dims[0], 128)
+        self.fc2 = nn.Linear(128, n_actions)
 
         self.optimizer = optim.RMSprop(self.parameters(), lr=lr)
 

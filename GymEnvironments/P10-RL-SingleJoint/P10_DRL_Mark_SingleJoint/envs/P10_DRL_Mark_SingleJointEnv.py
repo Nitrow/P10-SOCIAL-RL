@@ -6,6 +6,7 @@ import math
 import matplotlib.pyplot as plt
 from datetime import datetime
 import torch
+import time
 
 import os
 from scipy.spatial import distance
@@ -36,16 +37,18 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
 
         self.tcpy = self.supervisor.getFromDef("y")
         self.tcpy2 = self.supervisor.getFromDef("y2")
+        self.tcpy3 = self.supervisor.getFromDef("y3")
         
         
         self.goaly = self.supervisor.getFromDef("goaly")
         self.goaly2 = self.supervisor.getFromDef("goaly2")
+        self.goaly3 = self.supervisor.getFromDef("goaly3")
         
          
         self.tcp = self.supervisor.getFromDef('TCP')
         self.robot_pos = np.array(self.robot_node.getPosition())
         
-        self.timeout = 1000
+        self.timeout = 500
         
                 
         self.joint_names = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
@@ -77,15 +80,18 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.oldDistance = 0
         self.distancex = 0
         self.distancey = 0
+        self.distancey2 = 0
+        self.distancey3 = 0
         self.distancez = 0
         self.tcp_pos_world = self.tcp.getPosition()
         self.counter = 0
+        self.totalTime = 0
          
             
             
         self.actionScale = 3
         self.action_space = spaces.Box(low=-1, high=1, shape=(len(self.joint_names),), dtype=np.float32)
-        self.observation_space = spaces.Box(low=-10, high=10, shape=(26,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-10, high=10, shape=(30,), dtype=np.float32)
         
         self.documentation = "Action space: all joints State space: tcp pos (xyz), target pos (xyz), joint positions ."
         self.documentation += "{} - Rewards {} - Timeout at {}\n".format(self.id, self.rewardstr, str(self.timeout))
@@ -98,17 +104,13 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         
         
     def reset(self):
-        
-        
-        
-       
-            
-        
-        
+             
         self._getSensors()
         self._getMotors()
         self.supervisor.step(self.TIME_STEP) 
-
+        
+        self.seconds = time.time()
+        
         self.supervisor.step(self.TIME_STEP)
         self.goal_node.setSFVec3f(self.target)
         self.supervisor.step(self.TIME_STEP) 
@@ -116,6 +118,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.done = False    
         self.prevdisty = distance.euclidean(self.tcpy.getPosition(), self.goaly.getPosition())
         self.prevdisty2 = distance.euclidean(self.tcpy2.getPosition(), self.goaly2.getPosition())
+        self.prevdisty3 = distance.euclidean(self.tcpy3.getPosition(), self.goaly3.getPosition())
         state = self.getState()
         return np.asarray(state)
 
@@ -136,6 +139,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         
         distDifferencey = self.prevdisty - self.distancey 
         distDifferencey2 = self.prevdisty2 - self.distancey2 
+        distDifferencey3 = self.prevdisty3 - self.distancey3 
            
         
                
@@ -143,10 +147,11 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         #print(self.distance)
         self.prevdisty = self.distancey
         self.prevdisty2 = self.distancey2
+        self.prevdisty3 = self.distancey3
         #print("Distance: {}".format(np.linalg.norm(np.array(self.tcp.getPosition()) - self.robot_pos)))
        
         # Normalize the distance by the maximum robot reach so it's between 0 and 1
-        reward = (self.distanceDeltaReward * distDifferencey) +  (self.distanceDeltaReward * distDifferencey2) #+ self.constPunishment
+        reward = (self.distanceDeltaReward * distDifferencey) +  (self.distanceDeltaReward * distDifferencey2)+  (self.distanceDeltaReward * distDifferencey3) #+ self.constPunishment
         #print(self.total_rewards)
         self.counter = self.counter + 1
               
@@ -157,12 +162,20 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
             self._setTarget()
             self.counter = 0
             self.supervisor.simulationReset()
-        if self.distancey  < 0.02 and self.distancey2 < 0.02:
+        if self.distancey  < 0.02 and self.distancey2 < 0.02 and self.distancey3 < 0.02:
             self.epOutcome = "Success"
             print("Success")
             self._setTarget()
             self.done = True
             reward += self.successReward
+            seconds2 = time.time()
+            
+            time3 = seconds2 - self.seconds  
+            
+            self.totalTime = self.totalTime + time3 
+            
+            print(self.totalTime)
+            
         if self._isCollision():
             self.epOutcome = "Collision"
             print("Collision")
@@ -175,7 +188,7 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         self.total_rewards += reward
         if self.done:
             self.saveEpisode(str(round(self.total_rewards)) + ";")
-            self.plot_learning_curve()
+            #self.plot_learning_curve()
         #print(reward)
         return [state, float(reward), self.done, {}]
 
@@ -215,10 +228,10 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
         
         positions = [[-0.45, -0.2, 0, 0.2, 0.45], [0.4, 0.425, 0.45]]   
         
-        x = random.uniform(-0.45, 0.45)
+        x = random.uniform(-0.3, 0.3)
         
-        z = 0.47
-        y = 0.15
+        z = 0.6
+        y = 0.25
             
         self.target = list(np.array([x, y + self.robot_pos[1], z]))
 
@@ -239,7 +252,8 @@ class P10_DRL_Mark_SingleJointEnv(gym.Env):
     
         self.distancey = distance.euclidean(self.tcpy.getPosition(), self.goaly.getPosition())
         self.distancey2 = distance.euclidean(self.tcpy2.getPosition(), self.goaly2.getPosition())
-        return [self.sensors[i].getValue() for i in range(len(self.sensors))] + [self.motors[i].getVelocity() for i in range(len(self.motors))]  + self.tcpy.getPosition() + self.tcpy2.getPosition() + self.goaly.getPosition() + self.goaly2.getPosition() + [self.distancey, self.distancey2]
+        self.distancey3 = distance.euclidean(self.tcpy3.getPosition(), self.goaly3.getPosition())
+        return [self.sensors[i].getValue() for i in range(len(self.sensors))] + [self.motors[i].getVelocity() for i in range(len(self.motors))]  + self.tcpy.getPosition() + self.tcpy2.getPosition() + self.tcpy3.getPosition() + self.goaly.getPosition() + self.goaly2.getPosition() + [self.distancey, self.distancey2, self.distancey3]
         #return self.tcp.getPosition() + self.target 
 
 

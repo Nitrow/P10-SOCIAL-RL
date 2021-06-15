@@ -15,7 +15,7 @@ from P10_DRL_GoToBucket.envs import P10_DRL_GoToBucketEnv
 
 if __name__ == '__main__':
 
-    n_games = 5000
+    n_games = 10000
     dt = 32
     env = P10_DRL_GoToBucketEnv()
     #env = P10_DRL_Mark_SimpleEnv()
@@ -27,7 +27,7 @@ if __name__ == '__main__':
                 
     print(env.observation_space.shape)
                 
-    agent = Agent(alpha=0.0005, beta=0.0005, reward_scale=2, env_id=env.id, 
+    agent = Agent(alpha=0.0003, beta=0.0003, reward_scale=2, env_id=env.id, 
                 input_dims=env.observation_space.shape, tau=0.005,
                 env=env, batch_size=512, layer1_size=256, layer2_size=256,
                 n_actions=env.action_space.shape[0])

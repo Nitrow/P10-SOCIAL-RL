@@ -62,7 +62,7 @@ class P10_DRL_D3QNEnv(gym.Env):
         
           
         self.action_space = spaces.Discrete(7)
-        self.observation_space = spaces.Box(low=-10, high=10, shape=(12,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-10, high=10, shape=(18,), dtype=np.float32)
         
         
     def reset(self):
@@ -84,27 +84,29 @@ class P10_DRL_D3QNEnv(gym.Env):
         self.total_rewards = 0    
         self.done = False    
 
-        state = [0]*12
+        state = [0]*18
         return state
 
 
     def step(self, action):
         
-        
+        print(action)
         self.supervisor.step(self.TIME_STEP)   
            
         state = self.getCans()
         #print (state)
         if action < 6 and self.cansDict["Can " + str(action+1)]["Position"] > 0:
             reward = 1 - self.cansDict["Can " + str(action+1)]["Position"]
-            #yaw = self.cansDict["Can " + str(action+1)]["Orientation"]
-            #print("distance reward: ", 1 - self.cansDict["Can " + str(action+1)]["Position"])
+            yaw = self.cansDict["Can " + str(action+1)]["Orientation"]
+            print("distance reward: ", 1 - self.cansDict["Can " + str(action+1)]["Position"])
             
-            #reward += yaw*(math.pi/180)
+            reward += (yaw*(math.pi/180))/10
             
-            #print("angle reward: ",  yaw*(math.pi/180))
-            reward += self.cansDict["Can " + str(action+1)]["Color"]
-            #print("color reward>: ", self.cansDict["Can " + str(action+1)]["Color"]*0.1)
+            print("angle reward: ",  (yaw*(math.pi/180))/10)
+            reward += self.cansDict["Can " + str(action+1)]["Color"]/10
+            
+            
+            print("color reward: ", self.cansDict["Can " + str(action+1)]["Color"]*0.1)
         else:
             reward = 0
         
@@ -117,15 +119,16 @@ class P10_DRL_D3QNEnv(gym.Env):
   
        
       
-       # if self.cansDict["Can 6"]["Position"] < -0.49:
+        
              
-      #      for i in range(len(self.cans)):    
-        #        
-        #        self.cans[i].getField("translation").setSFVec3f([1.79,0.83,0.66])
+        for i in range(len(self.cans)):    
+            if self.cansDict["Can " + str(i+1)]["Position"] < -0.49:
+                
+                self.cans[i].getField("translation").setSFVec3f([1.79,0.83,0.66])
         
         counter =+ 1
         
-        if self.counter == 2000:
+        if self.counter == 1000:
             self.done = True
         
         
@@ -164,14 +167,14 @@ class P10_DRL_D3QNEnv(gym.Env):
             
             if self.position < 1.7 and self.position > -0.5 :
 
-                state[i] = [self.position, self.color]
+                state[i] = [self.position, self.orientation, self.color]
                 canDict = {"Position": self.position,
                    "Orientation": self.orientation,
                    "Color" : self.color}
                    
                 self.cansDict.update ({"Can " + str(i+1): canDict})
             else:
-                state[i] = [0, 0]
+                state[i] = [0, 0, 0]
                 canDict = {"Position": 0,
                    "Orientation": 0,
                    "Color" : 0}   

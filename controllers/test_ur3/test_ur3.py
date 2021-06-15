@@ -2,23 +2,34 @@
 
 from controller import Robot, Motor, Supervisor
 
-import ikpy
+
+import pyikfastur3
+
+
+
+
 import torch
 from ikpy.chain import Chain
 import matplotlib.pyplot as plt
-import ikpy.utils.plot as plot_utils
+import random
+import sys
 
 
+
+
+IKPY_MAX_ITERATIONS = 4
 
 
 TIME_STEP = 32
 MAX_SPEED = 6.28
 
 counter = 0
-max_iter = 30
+max_iter = 10
+0
 
 supervisor = Supervisor()
 robot_node = supervisor.getFromDef("UR3")
+
 
 
 #trans_field = robot_node.getField("translation")
@@ -46,19 +57,28 @@ for i in range(len(joint_names)):
     sensors[i].enable(TIME_STEP)
 
 
+
+#ikResults = armChain.inverse_kinematics([0.5, 0.5, 0.5], max_iter=IKPY_MAX_ITERATIONS, initial_position=initial_position)
 dir = 2
+
+t = supervisor.getTime()
+    
 
 while supervisor.step(TIME_STEP) != -1:
     counter += 1
+    t = supervisor.getTime()
     #print(counter)
+
+    target_translation = [0.5, 0.5, 0.5]
+    target_rotation = [1, 0, 0, 0, 1, 0, 0, 0, 1]
+
+    # Calculate inverse kinematics
+    positions = pyikfast.inverse(target_translation, target_rotation)
+    print(positions)    
     
     
-    motors[0].setVelocity(0)
-    motors[1].setVelocity(1)
-    motors[2].setVelocity(0)
-    motors[3].setVelocity(0)
-    motors[4].setVelocity(0)
-    motors[5].setVelocity(0)
+    for i in range(6):
+        motors[i].setPosition(ikResults[i+1])
     
     
     #print(robot_node.getNumberOfContactPoints(True))

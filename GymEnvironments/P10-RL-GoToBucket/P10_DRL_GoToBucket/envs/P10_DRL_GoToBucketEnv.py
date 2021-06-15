@@ -11,6 +11,7 @@ import math
 import matplotlib.pyplot as plt
 from datetime import datetime
 import torch
+import time
 
 import os
 from scipy.spatial import distance
@@ -81,6 +82,7 @@ class P10_DRL_GoToBucketEnv(gym.Env):
         self.distancez = 0
         self.tcp_pos_world = self.tcp.getPosition()
         self.counter = 0
+        self.totalTime = 0
          
             
             
@@ -143,7 +145,7 @@ class P10_DRL_GoToBucketEnv(gym.Env):
         
 
 
-        
+        self.seconds = time.time()
         self.supervisor.step(self.TIME_STEP) 
         #self.supervisor.step(self.TIME_STEP) 
         #print(self.goal_target)
@@ -186,11 +188,29 @@ class P10_DRL_GoToBucketEnv(gym.Env):
             self.epOutcome = "Timeout"
             print("Timeout")
             self.done = True
+            
+            seconds2 = time.time()
+            
+            time3 = seconds2 - self.seconds  
+            
+            self.totalTime = self.totalTime + time3 
+            
+            print(self.totalTime)
         if self.Distance  < 0.1:
             self.epOutcome = "Success"
             print("Success")
             self.done = True
             reward += self.successReward
+            
+            
+            seconds2 = time.time()
+            
+            time3 = seconds2 - self.seconds  
+            
+            self.totalTime = self.totalTime + time3 
+            
+            print(self.totalTime)
+            
         if self._isCollision():
             self.epOutcome = "Collision"
             print("Collision")
@@ -241,7 +261,7 @@ class P10_DRL_GoToBucketEnv(gym.Env):
         
         
         x = random.choice([random.uniform(-0.45, -0.55), random.uniform(0.45, 0.55)])
-        z = random.uniform(0.5, 0.35)
+        z = random.uniform(0.2, -0.2)
         y = 0
             
         self.target = list(np.array([x, y, z]))
