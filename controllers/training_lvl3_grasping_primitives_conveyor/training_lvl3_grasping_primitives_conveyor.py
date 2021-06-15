@@ -15,18 +15,18 @@ from P10_DRL_Mark_SimpleEnv.envs import P10_DRL_Mark_SimpleEnv
 from P10_RL_env_v01.envs import P10RLEnv
 
 if __name__ == '__main__':
-    neurons = 256
+    neurons = 512
     n_games = 1000
     plt_avg = 100
     vdist = 1
     batchsize = 128
-    lr = 0.01
+    lr = 0.03
 
-    itername=str(n_games) + "episodes_"+ str(batchsize)+ "batchsize_lr001" + str(neurons) + "neurons" # alwaysreset
+    itername="stage2_testneuronsize_FixConvSpeed_20-120cmspawn_" + str(n_games) + "episodes_"+ str(batchsize)+ "batchsize_lr001" + str(neurons) + "neurons" # alwaysreset
     
     env = P10_DRL_Lvl3_Grasping_Primitives_Conveyor(itername, vdist, plt_avg)
     shutil.copy(env.own_path, env.path)
-    agent = Agent(gamma=0, epsilon=1.0, batch_size=batchsize, n_actions=env.action_shape, eps_end=0.03, input_dims=[env.state_shape], lr=lr, chkpt_dir=env.path, fc1_dims=neurons, fc2_dims=neurons)
+    agent = Agent(gamma=0, epsilon=1.0, batch_size=batchsize, n_actions=env.action_shape, eps_end=0.01, input_dims=[env.state_shape], lr=lr, chkpt_dir=env.path, fc1_dims=neurons, fc2_dims=neurons)
     scores, eps_history = [], []
                 
     best_score = env.reward_range[0]

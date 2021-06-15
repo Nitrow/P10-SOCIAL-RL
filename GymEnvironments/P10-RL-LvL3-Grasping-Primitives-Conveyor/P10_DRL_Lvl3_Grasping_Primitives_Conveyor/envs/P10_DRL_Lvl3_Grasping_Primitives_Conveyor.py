@@ -62,8 +62,8 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
         self.plt_avg = plt_avg
         self.test = False
         #self.own_path = "/home/harumanager/P10-XRL/GymEnvironments/P10-RL-LvL3-Grasping-Primitives/P10_DRL_Lvl3_Grasping_Primitives/envs/P10_DRL_Lvl3_Grasping_Primitives.py"
-        self.own_path = os.getcwd().split("/P10-XRL/")[0] + "/P10-XRL/GymEnvironments/P10-RL-LvL3-Grasping-Primitives/P10_DRL_Lvl3_Grasping_Primitives/envs/P10_DRL_Lvl3_Grasping_Primitives.py"
-        self.id = "DQN - " + str(datetime.now())[:-7].replace(':','_') + 'P10_DRL_Lvl3_Grasping_Primitives_' + itername
+        self.own_path = os.getcwd().split("/P10-XRL/")[0] + "/P10-XRL/GymEnvironments/P10-RL-LvL3-Grasping-Primitives-Conveyor/P10_DRL_Lvl3_Grasping_Primitives_Conveyor/envs/P10_DRL_Lvl3_Grasping_Primitives_Conveyor.py"
+        self.id = "DQN - " + str(datetime.now())[:-7].replace(':','_') + 'P10_DRL_Lvl3_Grasping_Primitives_Conveyor' + itername
         #self.id = '2021-04-15 09_44_43_SAC_P10_MarkEnv_SingleJoint_' 
         self.path = "data/" + self.id + "/" if not self.test else "test/" + self.id + "/" 
         os.makedirs(self.path, exist_ok=True)
@@ -91,9 +91,12 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
         self.sensor_fingers[1].enable(self.TIME_STEP)
         self.timeout = 100
 
+        self.target_x = 0
+
         self.conveyor = self.supervisor.getFromDef("CONVEYOR")
-        #self.conveyor_speed_field = self.conveyor.getField("speed")#getSFFloat(), setSFFloat(new_speed)
-        #self.conveyor_speed = 0.5
+        self.conveyor_speed_field = self.conveyor.getField("speed")#getSFFloat(), setSFFloat(new_speed)
+        self.conveyor_speed = 0.5
+        self.conveyor_speeds = [x/100 for x in range(10,60)]
 
         self.rotations = self._util_readRotationFile('rotations.txt')#[0.577, 0.577, 0.577, 2.094]
 
@@ -129,12 +132,12 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
         self.down_pose = [16.60, -121.69, -94.63, -54.27, 89.52]
 
         self.counter = 0
-
+        self.waitingTs = 3  # The number of timesteps it needs to wait after an operation (to make sure the physics catches up)
         self.actionScale = 3
         # Action: open/close finger, rotate joint, go up/down
         self.grasp_action_shape = 8
         self.grasp_actions = [m.radians(22.5*i) for i in range(self.grasp_action_shape)]
-        self.action_shape = 200
+        self.action_shape = 375
         self.state_shape = 1
         #self.action_space = spaces.Box(low=-1, high=1, shape=(self.action_shape,), dtype=np.float32)
         self.action_space = spaces.Discrete(self.action_shape)
@@ -158,8 +161,10 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
         self.stepCounter = 0
         self.reward = 0
         self._getMotors()
-        self._getSensors() 
+        self._getSensors()
+        if self.test: print("Setting target...") 
         self._setTarget()
+        if self.test: print("... target set!")
         self.finger1.resetPhysics()
         self.finger2.resetPhysics()
         self.total_rewards = 0    
@@ -184,9 +189,6 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
         self.finger2.resetPhysics()
         self.goal_node.resetPhysics()
         # Set actions
-        if self.test: print("Setting target...")
-        self._setTarget()
-        if self.test: print("... target set!")
         for i in range(action):
             #graspState = self.getState(mode="grasp")
             #action = self.grasp(graspState)
@@ -194,19 +196,19 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
         if self.test: print("Waited for {} timesteps!\n setting graping...".format(action))
 
         #graspState = self.getState(mode="grasp")
-        #action = self.grasp(graspState)
-        if self.test: print("...grasping set for {}".format(action)) 
+        #graspAction = self.grasp(graspState)
+        #if self.test: print("...grasping set for {}".format(graspAction)) 
         if self.test: print("Motion primitive initilized!\n... Opening fingers!")
         self._action_moveFingers(0)  # Open fingers
-        for i in range(5): self.supervisor.step(self.TIME_STEP)
+        for i in range(self.waitingTs): self.supervisor.step(self.TIME_STEP)
         if self.test: print("... Moving down!")
         self._action_moveTCP(0)  # Go down
-        for i in range(5): self.supervisor.step(self.TIME_STEP)
+        for i in range(self.waitingTs): self.supervisor.step(self.TIME_STEP)
         if self.test: print("... Closing fingers!")
         self._action_moveFingers(1)  # close fingers
         self.reward = -np.linalg.norm(np.array(self.goal_pos.getSFVec3f())-np.array(self.tcp.getPosition()))*100
-        if self.test: print("... Reward acquired: {}".format(self.reward))
-        for i in range(5): self.supervisor.step(self.TIME_STEP)
+        #if self.test: print("... Reward acquired: {}".format(self.reward))
+        for i in range(self.waitingTs): self.supervisor.step(self.TIME_STEP)
         if self.test: print("... Moving up!")
         self._action_moveTCP(1)  # Go up
         if self.test: print("... Waiting for can to slip out!")
@@ -217,15 +219,20 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
         self.reward = 100 if np.linalg.norm(np.array(self.goal_pos.getSFVec3f())-np.array(self.tcp.getPosition()))*100 < 10 else self.reward
         #self.reward = -np.linalg.norm(np.array(self.goal_pos.getSFVec3f())-np.array(self.tcp.getPosition()))*100
         #self.reward = 1 if np.linalg.norm(np.array(self.goal_pos.getSFVec3f())-np.array(self.tcp.getPosition()))*100 < 10 else self.reward
-        if self.test: print("Get new state")
-        state = self.getState()
         
         if self.test: print("REWARD: ", self.reward)
         if self.reward == 100:
             self.success += 1
+            #self.done = True
             print("\nSuccess\n")
         if (self.counter >= self.timeout) or self.bugged:
             self.done = True
+
+        if self.test: print("Setting target...")
+        self._setTarget()
+        if self.test: print("... target set!")
+        if self.test: print("Get new state")
+        state = self.getState()
 
         if self.test: print("STATE: ", state)
         #self.total_rewards = self.total_rewards + 1 if self.reward >= 0 else 0
@@ -274,22 +281,24 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
 
     def _setTarget(self):
         #rotation = random.choice(self.rotations)
-        z = random.uniform(0.4 - self.vdist/2, 0.4 - self.vdist/3) if random.randint(0, 1) else random.uniform(0.4 + self.vdist/2, 0.4 + self.vdist/3)
+        #z = random.uniform(0.4 - self.vdist/2, 0.4 - self.vdist/3) if random.randint(0, 1) else random.uniform(0.4 + self.vdist/2, 0.4 + self.vdist/3)
 
         #translation = [-0.01, 0.84, 0.4]
-        x = random.uniform(0.5, 1.5)
+        self.target_x = random.uniform(0.2, 1.2)
+        #self.target_x = random.uniform(0.2, 0.2)
         #translation = [x, 0.84, z]
-        translation = [x, 0.84, 0.4]
+        translation = [self.target_x, 0.84, 0.4]
         
         #self.goal_rot.setSFRotation(rotation)
         self.goal_rot.setSFRotation([2.7661199999894182e-06, -2.397449999990828e-09, 0.9999999999961744, 1.5708])
-        
+        if self.test: print("... at {}".format(self.target_x*100))
         self.goal_pos.setSFVec3f(translation)
         self.supervisor.step(self.TIME_STEP)
         self.goal_node.resetPhysics()
 
-        #self.conveyor_speed = random.choice([0.3, 0.4, 0.5])
-        #self.conveyor_speed_field.setSFFloat(self.conveyor_speed)
+        # self.conveyor_speed = random.choice(self.conveyor_speeds)
+        # self.conveyor_speed_field.setSFFloat(self.conveyor_speed)
+        # self.conveyor.restartController()
         
 
     def render(self, mode='human'):
@@ -310,8 +319,8 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
             state.append(y_dist)
             state.append(self.sensors[-1].getValue())  # Get joint angle
             state += self.goal_rot.getSFRotation()
-        #elif mode == "default":
-        #    state.append(self.conveyor_speed)
+        # elif mode == "default":
+        #     state.append(self.conveyor_speed)
         state = [float(s) for s in state]
         return state
 
