@@ -1,0 +1,2 @@
+Action space: move_down, move_up, close_fingers, rotate+, rotate-, open_fingersDQN - 2021-06-19 20_48_39P10_DRL_Lvl3_Grasping_Primitives_500_games_____NEWSETUP__1cm_128neurons_214NewtonGrasp_8actions_axisangle_000gamma - Rewards successfulgrasp-1 - Timeout at 100
+44;40;36;45;50;45;42;52;41;46;36;40;42;45;48;44;44;44;48;57;48;50;49;50;53;52;62;53;61;53;57;50;56;53;53;56;59;54;55;65;64;59;60;61;66;67;63;59;64;68;67;71;65;69;73;71;72;70;67;66;68;63;70;73;67;67;69;69;72;71;65;

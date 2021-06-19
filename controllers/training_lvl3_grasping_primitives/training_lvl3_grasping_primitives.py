@@ -16,10 +16,10 @@ from P10_RL_env_v01.envs import P10RLEnv
 
 if __name__ == '__main__':
     neurons = 128
-    n_games = 100
+    n_games = 500
     plt_avg = 10
     vdist = 1
-    itername=str(n_games) + "_games_WidthWiseDisplacement" + str(vdist) + "cm_" + str(neurons) + "neurons_214NewtonGrasp_8actions_axisangle_000gamma" # alwaysreset
+    itername=str(n_games) + "_games_____ANGLEDIFF-REWARD__" + str(vdist) + "cm_" + str(neurons) + "neurons_214NewtonGrasp_8actions_axisangle_000gamma" # alwaysreset
     
     env = P10_DRL_Lvl3_Grasping_Primitives(itername, vdist, plt_avg)
     shutil.copy(env.own_path, env.path)
@@ -51,7 +51,7 @@ if __name__ == '__main__':
             
             if not load_checkpoint: agent.learn()
             # Bookkeeping scores
-            score += reward
+            score += env.reward
             observation = observation_
             steps += 1
             
@@ -66,6 +66,7 @@ if __name__ == '__main__':
         print('Episode {}: score {} trailing 50 games avg {} steps {} {} scale {}'.format(i, score, avg_score, steps, env.id, 1))
     # Run the plotting
     #if not load_checkpoint: plot_learning_curve([i+1 for i in range(n_games)], score_history, 'plots/' + env.id)
+    agent.save_models()
     plot_learning_curve([i+1 for i in range(n_games)], score_history, env.path + env.id, env.plt_avg)
 
 

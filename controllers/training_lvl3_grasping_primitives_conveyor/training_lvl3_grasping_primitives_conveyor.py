@@ -15,14 +15,14 @@ from P10_DRL_Mark_SimpleEnv.envs import P10_DRL_Mark_SimpleEnv
 from P10_RL_env_v01.envs import P10RLEnv
 
 if __name__ == '__main__':
-    neurons = 512
+    neurons = 128
     n_games = 1000
     plt_avg = 100
     vdist = 1
     batchsize = 128
     lr = 0.03
 
-    itername="stage2_testneuronsize_FixConvSpeed_20-120cmspawn_" + str(n_games) + "episodes_"+ str(batchsize)+ "batchsize_lr001" + str(neurons) + "neurons" # alwaysreset
+    itername="stage2____________30-130_______testing-lastday___________" + str(n_games) + "episodes_"+ str(batchsize)+ "batchsize_lr001" + str(neurons) + "neurons" # alwaysreset
     
     env = P10_DRL_Lvl3_Grasping_Primitives_Conveyor(itername, vdist, plt_avg)
     shutil.copy(env.own_path, env.path)
@@ -49,6 +49,7 @@ if __name__ == '__main__':
             #print(action, m.degrees(observation[0]))
             # Do a step
             observation_, reward, done, info = env.step(action)
+            if env.bugged: continue
             # Add to the memory
             agent.remember(observation, action, reward, observation_, done)
             
@@ -58,7 +59,7 @@ if __name__ == '__main__':
             observation = observation_
             steps += 1
             #print("Action: {}\t Observation: {}\t Reward: {}".format(action, observation, reward))
-            
+        if env.bugged: continue
         score_history.append(score)
         avg_score = np.mean(score_history[-env.plt_avg:])
         eps_history.append(agent.epsilon)
@@ -70,7 +71,13 @@ if __name__ == '__main__':
         print('Episode {}: score {} trailing 50 games avg {} steps {} {} scale {}'.format(i, score, avg_score, steps, env.id, 1))
     # Run the plotting
     #if not load_checkpoint: plot_learning_curve([i+1 for i in range(n_games)], score_history, 'plots/' + env.id)
-    plot_learning_curve([i+1 for i in range(n_games)], score_history, env.path + env.id, env.plt_avg)
-
+    #plot_learning_curve([i+1 for i in range(n_games)], score_history, env.path + env.id, env.plt_avg)
+    print("---------------------------------------")
+    print("------------   DISTANCES  -------------")
+    print("---------------------------------------")
+    print("The Good:\n")
+    print(env.dist_yay)
+    print("\nThe Bad:\n")
+    print(env.dist_nay)
 
 

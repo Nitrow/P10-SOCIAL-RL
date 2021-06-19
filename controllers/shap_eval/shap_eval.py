@@ -63,7 +63,7 @@ if __name__ == '__main__':
             # Do a step
             observation_, reward, done, info = env.step(action)
             # Add to the memory
-            agent.remember(observation, action, reward, observation_, done)
+            agent.remember(observation["Selecting"], action, reward, observation_, done)
             episodeMemory.append(observation_)
             #print(memory[0], len(memory), type(memory[0]))
             if not load_checkpoint: agent.learn()

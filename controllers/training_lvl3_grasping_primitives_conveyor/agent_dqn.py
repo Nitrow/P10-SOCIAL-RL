@@ -8,7 +8,7 @@ import os
 class DeepQNetwork(nn.Module):
     def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions, chkpt_dir='tmp/dqn'):
         super(DeepQNetwork, self).__init__()
-        self.name = "DQN_Grasping"
+        self.name = "DQN_Timing"
         self.input_dims = input_dims
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
@@ -19,6 +19,8 @@ class DeepQNetwork(nn.Module):
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         self.loss = nn.MSELoss()
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
+        #self.device = T.device('cpu')
+        
         self.to(self.device)
         self.checkpoint_dir = chkpt_dir
         self.checkpoint_file = os.path.join(self.checkpoint_dir, self.name)
@@ -33,13 +35,14 @@ class DeepQNetwork(nn.Module):
         T.save(self.state_dict(), self.checkpoint_file)
 
     def load_checkpoint(self):
-        filename = "/home/harumanager/P10-XRL/controllers/training_lvl3_grasping_primitives_conveyor/test/DQN - 2021-06-02 16_56_36P10_DRL_Lvl3_Grasping_Primitives_1000episodes_NoConveyorSpeedNoRotation_binaryplotting_100_512neurons/" + self.name
-        #self.load_state_dict(T.load(self.checkpoint_file))
+        #filename = "/home/harumanager/P10-XRL/controllers/training_lvl3_grasping_primitives_conveyor/test/DQN - 2021-06-02 16_56_36P10_DRL_Lvl3_Grasping_Primitives_1000episodes_NoConveyorSpeedNoRotation_binaryplotting_100_512neurons/" + self.name
+        #self.load_state_dict(T.load(self.checkpoint_file))    
+        filename = "models/DQN_Grasping"         
         self.load_state_dict(T.load(filename))
 
 
 class Agent():
-    def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions, max_mem_size =100000, eps_end=0.01, eps_dec=5e-4, chkpt_dir='tmp/dqn', fc1_dims=256, fc2_dims=256):
+    def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions, max_mem_size =100000, eps_end=0.01, eps_dec=5e-5, chkpt_dir='tmp/dqn', fc1_dims=256, fc2_dims=256):
         self.chkpt_dir = chkpt_dir
         self.gamma = gamma
         self.epsilon = epsilon
