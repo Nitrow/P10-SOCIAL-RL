@@ -157,9 +157,9 @@ class P10_DRL_Lvl3_Grasping_Primitives_Conveyor(gym.Env):
         self.state = {}
         self.games = 0
         #self.action_space = spaces.Box(low=-1, high=1, shape=(self.action_shape,), dtype=np.float32)
-        self.action_space = spaces.Discrete(self.action_shape)
+        #self.action_space = spaces.Discrete(self.action_shape)
         
-        self.observation_space = spaces.Box(low=-200, high=200, shape=(self.state_shape,), dtype=np.float32)
+        #self.observation_space = spaces.Box(low=-200, high=200, shape=(self.state_shape,), dtype=np.float32)
 
         self.documentation = "Action space: move_down, move_up, close_fingers, rotate+, rotate-, open_fingers"
         self.documentation += "{} - Rewards {} - Timeout at {}\n".format(self.id, self.rewardstr, str(self.timeout))

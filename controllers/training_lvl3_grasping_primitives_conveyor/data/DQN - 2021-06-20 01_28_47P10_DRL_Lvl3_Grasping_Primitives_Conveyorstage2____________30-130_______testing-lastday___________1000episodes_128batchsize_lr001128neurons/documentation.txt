@@ -1,0 +1,2 @@
+Action space: move_down, move_up, close_fingers, rotate+, rotate-, open_fingersDQN - 2021-06-20 01_28_47P10_DRL_Lvl3_Grasping_Primitives_Conveyorstage2____________30-130_______testing-lastday___________1000episodes_128batchsize_lr001128neurons - Rewards successfulgrasp-1 - Timeout at 100
+0;0;0;
