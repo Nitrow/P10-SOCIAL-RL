@@ -107,77 +107,94 @@ class Environment():
 						"down-close-right" : [46.16, -124.96, -88.91, -57.09, 89.97],
 						"down-far-left" : [-12.39, -136.25, -68.44, -65.37, 89.38],
 						"down-far-mid" : [15.86, -125.56, -88.06, -56.98, 89.53],
-						"down-far-right" : [40.64, -136.44, -67.7, -66.78, 89.91]}
+						"down-far-right" : [40.64, -136.44, -67.7, -66.78, 89.91],
+						"green-bin" : [120, -125, -30, -115, 90],
+						"red-bin"   : [-107.77, -119, -46.48, -102.99, 91]}
+		self.pose_code = {"left" : -0.21, "mid" : 0, "right" : 0.21, "far" : 0.42, "close" : 0.36}
 		self.up_pose = [16.63, -111.19, -63.15, -96.24, 89.47]
 		self.down_pose = [16.60, -121.69, -94.63, -54.27, 89.52]
 		self.rotations = self._util_readRotationFile('rotations.txt')
+		self.timing_dist = 0.25
 		# Can registry
 		self.cans = {}
 		self.select_can_n = 5
+		self.actions = self.select_can_n + 1
 		self.selected_cans = []
 		self.candidates = []
 		self.delete_cans = []
+		self.chosen_can = 0
 		self.crate_pos_img = {"RED_ROBOT_CRATE" : [], "GREEN_ROBOT_CRATE" : []}
+		self.chosen_id = 0
+		self.choose_new_can = False
+		self.success = False
 		self.tryGetCratePos()
 		# DRL related variables
 		self.state = {"Grasping" : [], "Timing" : [], "Selecting" : []}
 		self.path = "training"
 		self.lvl3_agent = Agent()
 		self.state_shape = self.select_can_n * 3
+		self.r_index = -1
+		self.r_dist = -1
+		self.r_color = -1
+		self.r_success = 1
+		self.fullState = False
+
 
 	def reset(self):
 		self.cleanup()
 		self.supervisor.simulationReset()
 		self.conveyor.restartController()
-		#self.display_explanation.restartController()
 		self.selected_cans = []
 		self.candidates = []
 		self.delete_cans = []
+		self.chosen_can = 0
 		self.cans = {}
 		self.successes = 0
 		self.done = False
 		self.bugged = False
+		self.success = False
 		self.counter = 0
+		self.fullState = False
 		self.timesteps = 0
+		self.chosen_id = 0
 		self._getMotors()
 		self.finger1.resetPhysics()
 		self.finger2.resetPhysics()
-		#self.camera = Camera("camera")
-		#self.camera.enable(self.TIME_STEP)
-		#self.camera.recognitionEnable(self.TIME_STEP)
-		#self.goal_node.resetPhysics()
 		self.crate_pos_img = {"RED_ROBOT_CRATE" : [], "GREEN_ROBOT_CRATE" : []}
 		self.tryGetCratePos()
-		#self.supervisor.step(self.TIME_STEP)
-		self.move_time()
+		while len(self.selected_cans) == 0: self.move_time()
 		return self.get_state()
 
 
-	def cleanup(self):
-		root_children_n = self.root_children.getCount()
-		cans = []
-		for n in range(root_children_n):
-			if "CAN" in self.root_children.getMFNode(n).getDef():
-				cans.append(self.root_children.getMFNode(n))
+	def get_reward():
+		pass
 
-		for can in cans: can.remove()
+
+	def move_time(self):
+		self.timesteps += 1
+		#print(self.chosen_can)
+		self._drawImage()
+		self.canManager()
+		self.get_state()
+		#sel = self.get_state()["Selecting"]
+		#print(self.selected_cans)
+		#print(sel, len(sel))
+		self.supervisor.step(self.TIME_STEP)
+
+
+	def get_state_low(self):
+		self.state["Grasping"] = []
+		self.state["Timing"] = []
+		tcp_rot = [round(x) for x in R.from_matrix(np.array(self.tcp.getOrientation()).reshape(3,3)).as_euler('ZYX', degrees=True)]  # Get joint angle
+		can_rot = [round(x) for x in R.from_matrix(np.array(self.chosen_can.getOrientation()).reshape(3,3)).as_euler('ZYX', degrees=True)]
+		self.state["Grasping"] += tcp_rot
+		self.state["Grasping"] += can_rot
+		self.state["Grasping"] = [float(s) for s in self.state["Grasping"]]
+		x_dist = abs(self.chosen_can.getPosition()[0] - self.tcp.getPosition()[0])*100
+		self.state["Timing"].append(float(x_dist))
 
 	def get_state(self):
-		self.state  = {"Grasping" : [], "Timing" : [], "Selecting" : []}
-		#x_dist = abs(self.goal_pos.getSFVec3f()[0] - self.tcp.getPosition()[0])*100
-
-		#y_dist = abs(self.goal_pos.getSFVec3f()[2] - self.tcp.getPosition()[2])*100
-		#state["Grasping"] += self.tcp.getOrientation()
-		#state["Grasping"] += self.goal_node.getOrientation()
-		self.state["Grasping"] += [round(x) for x in R.from_matrix(np.array(self.tcp.getOrientation()).reshape(3,3)).as_euler('ZYX', degrees=True)]*2  # Get joint angle
-		#can_rot = [round(x) for x in R.from_matrix(np.array(self.goal_node.getOrientation()).reshape(3,3)).as_euler('ZYX', degrees=True)]
-		#self.state["Grasping"] += can_rot
-
-		#state["Grasping"].append(x_dist)
-		#state["Grasping"].append(y_dist)
-		self.state["Grasping"] = [float(s) for s in self.state["Grasping"]]
-
-		self.state["Timing"].append(float(0.3))
+		self.state["Selecting"]  = []
 		n_candidates = 0
 		self.selected_cans = []
 		for candidate in self.candidates:
@@ -190,80 +207,76 @@ class Environment():
 			self.selected_cans.append(candidate)
 		
 		self.state["Selecting"] += ((self.select_can_n * 3) - len(self.state["Selecting"])) * [0]
-		# state["Selecting"] += (self.select_can_n- n_candidates)* 3 * [0]# Fill with zeros
-		# if len(state["Selecting"]) < (self.select_can_n * 3): ((self.select_can_n * 3) - len(state["Selecting"])) * [0]
-			#state["Timing"] = [float(s) for s in state["Timing"]]
+		self.state["Selecting"] = [float(s) for s in self.state["Selecting"]]
 		return self.state
 
 
-	def generateCans(self):
-		can_color = random.choice(["green", "yellow", "red"])
-		self.root_children.importMFNode(-1, 'resources/' + can_color + ".wbo")
-		self.root_children.getMFNode(-1).getField("translation").setSFVec3f([2.7, 0.87, random.uniform(0.36,0.42)])
-		self.root_children.getMFNode(-1).getField("rotation").setSFRotation(random.choice(self.rotations))
-		self.cans[self.root_children.getMFNode(-1).getId()] = {"color" : can_color}
+	def step(self, action):
+		try:
+			self.chosen_can = self.supervisor.getFromId(self.selected_cans[action])
+			self.fullState = True
+		except IndexError:
+			self.chosen_can = 0
+			self.fullState = False
+			return [self.get_state(), self.r_index]
+		#print(self.chosen_can)
+		self.chosen_id = self.chosen_can.getId()
+		self.choose_new_can = False
 
-
-	def removeCans(self):
-		for can_id in self.delete_cans:
-			self.supervisor.getFromId(can_id).remove()
-			del self.cans[can_id]
-			self.candidates.remove(can_id)
-
-
-	def maintainCans(self):
-		self.candidates = []
-		self.delete_cans = []
-		for can_id, can_details in self.cans.items():
-			can_node = self.supervisor.getFromId(can_id)
-			#pos = self.supervisor.getFromId(can_id).getPosition()
-			#rot = self.supervisor.getFromId(can_id).getOrientation()
-			self.cans[can_id]["position"] = [round(x,2) for x in can_node.getPosition()]
-			self.cans[can_id]["orientation"] = [round(x,2) for x in can_node.getOrientation()]
-
-			if self.cans[can_id]["position"][0] < 1 : self.candidates.append(can_id)
-			
-
-			if self.supervisor.getFromId(can_id).getPosition()[0] < -0.6:
-				self.delete_cans.append(can_id)
-
-
-
-	def canManager(self):
-		# Can birth
-		if self.timesteps%10 == 0 and random.choice([0,1,2]) == 2: self.generateCans()
-		# 
-		self.maintainCans()
-		#print(self.candidates)
-		# Can death
-		self.removeCans()
-
-
-	def step(self, actions):
+		self.get_state_low()
 		graspAngle, waitingTime = self.lvl3_agent.choose_action(self.state)
-		# Resetting-utility function
-		self._getMotors()
-		self.finger1.resetPhysics()
-		self.finger2.resetPhysics()
 		self.motors[-1].setPosition(float(self.graspActions[graspAngle]))
-		# # Actual actions
 		reward = 0
-		while len(self.selected_cans) == 0: self.move_time()
+		
+		# Move to pose
+		self.move_time()
+		if self.choose_new_can: return [self.get_state(), reward]
+		chosen_color = self.cans[self.chosen_id]["color"]
+		if chosen_color == "yellow": return [self.get_state(), self.r_color]
+		x = round(self.chosen_can.getPosition()[0],2)
+		y = round(self.chosen_can.getPosition()[2],2)
+		if self.pose_code["right"] + self.timing_dist < x : x_pos = "right"
+		elif self.pose_code["mid"] + self.timing_dist < x : x_pos = "mid"
+		elif self.pose_code["left"] + self.timing_dist < x : x_pos = "left"
+		else: return [self.get_state(), self.r_dist]
+		
+		
+		
+		
+		y_pos = "far" if y > (self.pose_code["close"]+self.pose_code["far"])/2 else "close"
+		self.down_pose = self.poses["down-" + y_pos + "-" + x_pos]
+		self.up_pose = self.poses["up-" + y_pos + "-" + x_pos]
+		self._action_moveTCP(1)
+		self._action_moveFingers(0)
 
-		for i in range(waitingTime):
-			self.move_time()
-		# self._action_moveFingers(0)
-		# for i in range(self.waitingTs): self.move_time()
-		# self._action_moveTCP(0)
-		# for i in range(self.waitingTs): self.move_time()
-		# self._action_moveFingers(1)
-		# for i in range(self.waitingTs): self.move_time()
-		# self._action_moveTCP(1)
-		# for i in range(100): self.move_time()
-		# point = 1 if np.linalg.norm(np.array(self.goal_node.getField("translation").getSFVec3f())-np.array(self.tcp.getPosition()))*100 < 10 else 0
-		# self.successes += point
+		#0.0128 + 8
+		for i in range(max(round(abs(x-self.tcp.getPosition()[0])/0.0128 - 25),0)): self.move_time()
+		# Move down
+		self._action_moveTCP(0)
+		for i in range(self.waitingTs): self.move_time()
+		# Grasp
+		self._action_moveFingers(1)
+		for i in range(self.waitingTs): self.move_time()
+		self._action_moveTCP(1)
+		# Put to bin
+		self.up_pose = self.poses[chosen_color + "-bin"]
+		for i in range(self.waitingTs): self.move_time()
+		self._action_moveTCP(1)
+		for i in range(self.waitingTs): self.move_time()
+		self._action_moveFingers(0)
+		for i in range(self.waitingTs): self.move_time()
+		self.up_pose = self.poses["up-close-mid"]
+		self._action_moveTCP(1)
+		for i in range(self.waitingTs): self.move_time()
+		
+
+		# Get reward
+		if self.success:
+			print("Success!")
+			self.success = False
+			reward = self.r_success
 		self.counter += 1
-
+		#print(self.counter)
 		if self.counter >= self.timeout or self.bugged:
 			if self.bugged: self.successes = self.successes/self.counter * 100
 			self.done = True
@@ -272,47 +285,41 @@ class Environment():
 
 	def _drawImage(self):
 		cameraData = self.camera.getImage()
+		if not cameraData: return
 		image = np.frombuffer(cameraData, np.uint8).reshape((self.camera.getHeight(), self.camera.getWidth(), 4))
+		chosen_id = self.chosen_can.getId() if type(self.chosen_can) != type(1) else 0
 		for obj in self.camera.getRecognitionObjects():
 			obj_id = obj.get_id()
 			if obj_id not in self.cans: continue
-			size = np.array(obj.get_size_on_image()) + np.array([10, 10])
-			start_point = np.array(obj.get_position_on_image()) - (size / 2) 
-			start_point =  np.array([int(n) for n in start_point])
-			end_point = start_point + size
-			thickness = 2
-			color = self.colors[self.cans[obj_id]["color"]]
-			color = np.rint(np.array(color)*255)
-			color = ( int (color [ 0 ]), int (color [ 1 ]), int (color [ 2 ]))
-			font = cv2.FONT_HERSHEY_SIMPLEX
-			image = cv2.rectangle(image, tuple(start_point), tuple(end_point), tuple(color), thickness)
-			# Draw arrows:
-			end_point = self.crate_pos_img["RED_ROBOT_CRATE"]
-			start_point = np.array([int(n) for n in obj.get_position_on_image()])
-			image = cv2.arrowedLine(image, tuple(start_point), tuple(end_point), tuple(color), thickness)
+			if chosen_id == obj_id:
+				size = np.array(obj.get_size_on_image()) + np.array([10, 10])
+				start_point = np.array(obj.get_position_on_image()) - (size / 2) 
+				start_point =  np.array([int(n) for n in start_point])
+				end_point = start_point + size
+				thickness = 2
+				col = self.cans[obj_id]["color"]
+				color = self.colors[self.cans[obj_id]["color"]]
+				color = np.rint(np.array(color)*255)
+				color = ( int (color [ 0 ]), int (color [ 1 ]), int (color [ 2 ]))
+				font = cv2.FONT_HERSHEY_SIMPLEX
+				image = cv2.rectangle(image, tuple(start_point), tuple(end_point), tuple(color), thickness)
+				# Draw arrows:
+				if col != "yellow":
+					end_point = self.crate_pos_img[col.upper() + "_ROBOT_CRATE"]
+					start_point = np.array([int(n) for n in obj.get_position_on_image()])
+					image = cv2.arrowedLine(image, tuple(start_point), tuple(end_point), tuple(color), thickness)
 		cv2.imwrite('resources/tmp.jpg', image)
 		ir = self.display_explanation.imageLoad('resources/tmp.jpg')
 		self.display_explanation.imagePaste(ir, 0, 0, False)
 		self.display_explanation.imageDelete(ir)
 
 
-	def get_reward():
-		pass
-
-	def move_time(self):
-		self.timesteps += 1
-		#self._drawImage()
-		self.canManager()
-		sel = self.get_state()["Selecting"]
-		#print(self.selected_cans)
-		#print(sel, len(sel))
-		self.supervisor.step(self.TIME_STEP)
-
 	def _getMotors(self):
 		for i in range(len(self.joint_names)):
 			self.motors[i] = self.supervisor.getDevice(self.joint_names[i])
 			self.sensors[i] = self.supervisor.getDevice(self.joint_names[i]+'_sensor')
 			self.sensors[i].enable(self.TIME_STEP)
+
 
 	def _action_moveFingers(self, mode=0):
 		# 0 for open state, 1 for closed state
@@ -322,10 +329,11 @@ class Environment():
 		self.fingers[1].setPosition(pos[1])
 		self._util_positionCheck(pos, self.sensor_fingers, 0.02)
 
+
 	def _action_moveTCP(self, mode):
-		pose = self.poses["down-close-left"]
-		if mode == 0: pose = self.poses["down-close-right"]
-		elif mode == 1:	pose = self.poses["up-close-right"]
+		pose = self.up_pose
+		if mode == 0: pose = self.down_pose
+		elif mode == 1:	pose = self.up_pose
 		[self.motors[i].setPosition(m.radians(pose[i])) for i in range(len(pose))]
 		self._util_positionCheck(pose, self.sensors, 0.05)
 
@@ -391,6 +399,61 @@ class Environment():
 					self.crate_pos_img["GREEN_ROBOT_CRATE"] = obj.get_position_on_image()
 
 
+
+	def generateCans(self):
+		can_color = random.choice(["green", "yellow", "red"])
+		self.root_children.importMFNode(-1, 'resources/' + can_color + ".wbo")
+		self.root_children.getMFNode(-1).getField("translation").setSFVec3f([2.7, 0.87, random.uniform(0.36,0.42)])
+		self.root_children.getMFNode(-1).getField("rotation").setSFRotation(random.choice(self.rotations))
+		self.cans[self.root_children.getMFNode(-1).getId()] = {"color" : can_color}
+
+
+	def removeCans(self):
+		for can_id in self.delete_cans:
+			self.supervisor.getFromId(can_id).remove()
+			del self.cans[can_id]
+			self.candidates.remove(can_id)
+
+
+	def maintainCans(self):
+		self.candidates = []
+		self.delete_cans = []
+		for can_id, can_details in self.cans.items():
+			can_node = self.supervisor.getFromId(can_id)
+			#pos = self.supervisor.getFromId(can_id).getPosition()
+			#rot = self.supervisor.getFromId(can_id).getOrientation()
+			self.cans[can_id]["position"] = [round(x,2) for x in can_node.getPosition()]
+			self.cans[can_id]["orientation"] = [round(x,2) for x in can_node.getOrientation()]
+
+			if self.cans[can_id]["position"][0] < 1 : self.candidates.append(can_id)
+			
+			can_pos = self.supervisor.getFromId(can_id).getPosition()
+			if can_pos[0] < -0.6 or (can_pos[2] < 0.34 and can_pos[1] < 0.7):
+				if can_pos[2] < 0.34 and can_pos[1] < 0.7:
+					if can_id == self.chosen_id: self.success  = True
+				if can_id == self.chosen_id: self.choose_new_can = True
+				self.delete_cans.append(can_id)
+
+
+	def canManager(self):
+		# Can birth
+		if self.timesteps%10 == 0 and random.choice([0,1,2]) == 2: self.generateCans()
+		# 
+		self.maintainCans()
+		#print(self.candidates)
+		# Can death
+		self.removeCans()
+
+
+	def cleanup(self):
+		root_children_n = self.root_children.getCount()
+		cans = []
+		for n in range(root_children_n):
+			if "CAN" in self.root_children.getMFNode(n).getDef():
+				cans.append(self.root_children.getMFNode(n))
+		for can in cans: can.remove()
+
+
 class Agent():
 	def __init__(self):
 		self.grasping_DQN = DQN(0, n_actions=18, input_dims=[6], fc1_dims=128, fc2_dims=128, name="DQN_Grasping", chkpt_dir='models')
@@ -420,25 +483,34 @@ if __name__ == '__main__':
 	neurons = 128
 	env = Environment()
 
-	agent = DQN_Agent(gamma=0, epsilon=1.0, batch_size=batchsize, n_actions=env.select_can_n, eps_end=0.01, input_dims=[env.state_shape], lr=lr, chkpt_dir=env.path, fc1_dims=neurons, fc2_dims=neurons) 
+	agent = DQN_Agent(gamma=0, epsilon=1.0, batch_size=batchsize, n_actions=env.actions, eps_end=0.01, input_dims=[env.state_shape], lr=lr, chkpt_dir=env.path, fc1_dims=neurons, fc2_dims=neurons) 
 	#shutil.copy(env.own_path, env.path)
 	total_points = 0
 	bugs = 0
+
+	reward_history = []
+	best_score = -999
 	for i in range(n_games):
 	# Start a new game
 		observation = env.reset()
-
+		score = 0
 		while not env.done:
 		# Take an action
 			action = agent.choose_action(observation["Selecting"])
 			observation_, reward = env.step(action)
-			print(action)
+			#print(action)
 			agent.remember(observation["Selecting"], action, reward, observation_["Selecting"], env.done)
 			#print(observation["Selecting"])
 			agent.learn()
 			#print(len(observation["Selecting"]))
 			#print(env.get_state())
+			score += reward
+		reward_history.append(score)
+		avg_score = np.mean(reward_history[-100:])
 		total_points += env.successes
 		if env.bugged and env.successes == 0: bugs += 1
+		if avg_score >= best_score:
+			agent.save_models()
+		print('Episode {}: score {} trailing 100 games avg {}'.format(i, score, avg_score))
 	print("Avg successes out of hundred games: {}%".format(float(total_points/(n_games-bugs))))
 	#print("Action: {}\t Observation: {}\t Reward: {}".format(action, observation, reward))
