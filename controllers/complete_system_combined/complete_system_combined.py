@@ -176,6 +176,7 @@ class Environment():
 		self._drawImage()
 		self.canManager()
 		self.get_state()
+		#print(self.chosen_can)
 		#sel = self.get_state()["Selecting"]
 		#print(self.selected_cans)
 		#print(sel, len(sel))
@@ -212,6 +213,7 @@ class Environment():
 
 
 	def step(self, action):
+		self.fullState = False
 		try:
 			self.chosen_can = self.supervisor.getFromId(self.selected_cans[action])
 			self.fullState = True
